@@ -35,5 +35,11 @@ maximes-skills/          ← single git repo
 
 After editing a skill, sync it to OpenClaw with:
 ```bash
-bash ~/aux_services/maximes-skills/skills/<skill-name>/scripts/deploy.sh
+# Deploy all skills
+bash deploy-openclaw.sh
+
+# Deploy a specific skill
+bash deploy-openclaw.sh stack-summary
 ```
+
+OpenClaw picks up changes on next skill load (no restart needed).
