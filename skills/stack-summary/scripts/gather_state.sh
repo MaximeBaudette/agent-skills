@@ -100,7 +100,7 @@ echo ""
 
 # --- Cron registry ---
 echo "--- CRONS ---"
-cat "$OPENCLAW_WS/CRONs.md" 2>/dev/null || echo "CRONs.md not found"
+cat "${STACK_DIR:-$HOME/STACK}/CRONs.md" 2>/dev/null || echo "CRONs.md not found at ${STACK_DIR:-$HOME/STACK}/CRONs.md"
 echo ""
 
 echo "=== END GATHER_STATE ==="

@@ -5,7 +5,7 @@ description: "Maintain living stack documentation for an OpenClaw-powered AI age
 
 # Stack Summary Skill
 
-Maintains a living architecture documentation directory at `~/STACK/` (configurable — see [Configuration](#configuration)):
+Maintains a living architecture documentation directory at `~/STACK/` (configurable via `STACK_DIR`):
 
 ```
 ~/STACK/
@@ -17,32 +17,17 @@ Maintains a living architecture documentation directory at `~/STACK/` (configura
 
 ## Configuration
 
-This skill uses two environment variables (with sensible defaults):
+Set `STACK_DIR` in your shell profile to change where the documentation lives (default: `~/STACK`).
 
-| Variable | Default | Description |
-|---|---|---|
-| `STACK_DIR` | `~/STACK` | Where to store `CURRENT.md`, `CRONs.md`, and `Archive/` |
-| `STACK_SKILL_DIR` | `~/aux_services/stack-summary` | Where this skill is installed |
+## Operations
 
-## Deploying / Updating the Skill
+Three operations, used in combination:
 
-OpenClaw loads skills from `~/.agents/skills/`. After editing `SKILL.md` or `scripts/`, sync to the install location:
-
-```bash
-bash ~/aux_services/stack-summary/scripts/deploy.sh
-```
-
-This uses `rsync` to copy the repo to `~/.agents/skills/stack-summary/` (excluding `.git`).
-
-> **Note for publishers:** The repo at `~/aux_services/stack-summary/` is the source of truth for development. Clone it and run `deploy.sh` (adjusted for your path) to install.
-
-Set these in your shell profile if your paths differ from the defaults. The examples in this skill use `~/STACK` and `~/aux_services/stack-summary` for clarity.
-
-The skill has two operations:
 1. **`update-stack`** — regenerate `STACK/CURRENT.md` from current system state
-2. **`archive-change`** — create a new `STACK/Archive/YYYY-MM-DD_<slug>.md` entry
+2. **`sync-crons`** — rewrite `STACK/CRONs.md` from live cron/service state
+3. **`archive-change`** — create a new dated entry in `STACK/Archive/`
 
-Use `archive-change` BEFORE `update-stack` when removing or replacing something — preserve what it was, then update the current view.
+> When removing or replacing something, run `archive-change` **before** `update-stack` — preserve the old state first, then update the current view.
 
 ---
 
@@ -51,14 +36,13 @@ Use `archive-change` BEFORE `update-stack` when removing or replacing something 
 ### When to use
 - After installing or removing a service, plugin, skill, or tool
 - When any port, path, or config changes
-- Periodically (e.g., after a session where infrastructure was modified)
 - When user asks "update stack docs" or "regenerate CURRENT.md"
 
 ### Steps
 
 1. Run the gather script to collect current system state:
    ```bash
-   bash ~/aux_services/stack-summary/scripts/gather_state.sh
+   bash ~/.agents/skills/stack-summary/scripts/gather_state.sh
    ```
 
 2. Read the current `~/STACK/CURRENT.md` to understand the existing structure.
@@ -75,41 +59,35 @@ Use `archive-change` BEFORE `update-stack` when removing or replacing something 
 
 4. Update the `Last updated:` date at the top.
 
-5. Commit the change:
+5. Commit:
    ```bash
    cd ~/STACK && git add CURRENT.md && git commit -m "docs: update stack snapshot YYYY-MM-DD"
    ```
 
 ---
 
-## Operation 3: sync-crons
+## Operation 2: sync-crons
 
 ### When to use
 - After adding or removing any cron job, systemd service, or scheduled task
 - When the user asks "sync cron docs", "update CRONs.md", or "document this cron"
-- Periodically to ensure `STACK/CRONs.md` reflects reality
 - After any OpenClaw cron change (`openclaw cron add/delete`)
 
 ### Steps
 
 1. Collect live cron state:
    ```bash
-   # OpenClaw cron jobs
    openclaw cron list
-
-   # System crontab
    crontab -l
-
-   # Active systemd user services
    systemctl --user list-units --type=service --state=active --no-pager
    ```
 
 2. Read current `~/STACK/CRONs.md` to see what's already documented.
 
 3. Rewrite `~/STACK/CRONs.md` with three sections:
-   - **OpenClaw Cron Jobs** — from `openclaw cron list` output (ID, Name, Schedule, Status, Notes)
-   - **System Cron Jobs** — from `crontab -l` output (Name, Schedule, Command, Status, Notes)
-   - **Systemd User Services** — from `systemctl --user` output (Service, Status, Port, Notes)
+   - **OpenClaw Cron Jobs** — from `openclaw cron list` (ID, Name, Schedule, Status, Notes)
+   - **System Cron Jobs** — from `crontab -l` (Name, Schedule, Command, Notes)
+   - **Systemd User Services** — from `systemctl --user` (Service, Status, Port, Notes)
 
 4. Update the `Last updated:` date at the top.
 
@@ -118,11 +96,9 @@ Use `archive-change` BEFORE `update-stack` when removing or replacing something 
    cd ~/STACK && git add CRONs.md && git commit -m "crons: sync scheduled tasks registry YYYY-MM-DD"
    ```
 
-> **Note:** `~/STACK/CRONs.md` is the source of truth. The workspace `~/.openclaw/workspace/CRONs.md` (if it exists) is a stub that redirects here — do not maintain it separately.
-
 ---
 
-## Operation 2: archive-change
+## Operation 3: archive-change
 
 ### When to use
 - Removing or replacing a service, tool, plugin, or skill
@@ -133,9 +109,9 @@ Use `archive-change` BEFORE `update-stack` when removing or replacing something 
 ### Steps
 
 1. Determine an archive slug: short, kebab-case, descriptive  
-   Examples: `memory-byterover-to-always-on-agent`, `add-composio-plugin`, `remove-pinchtab`, `upgrade-openclaw-2026-04`
+   Examples: `memory-byterover-to-always-on-agent`, `add-composio-plugin`, `upgrade-openclaw-2026-04`
 
-2. Create the archive file at `~/STACK/Archive/YYYY-MM-DD_<slug>.md` using this template:
+2. Create `~/STACK/Archive/YYYY-MM-DD_<slug>.md` using this template:
 
 ```markdown
 # YYYY-MM-DD — [Human-readable title]
@@ -189,43 +165,60 @@ Use `archive-change` BEFORE `update-stack` when removing or replacing something 
 | path | Keep/Delete | Why |
 ```
 
-3. Fill in all applicable sections. Skip sections that don't apply (e.g., no "Removed" section if this is a pure addition).
+3. Skip sections that don't apply (e.g., no "Removed" if this is a pure addition).
 
-4. Commit the archive file:
+4. Commit:
    ```bash
    cd ~/STACK && git add Archive/ && git commit -m "archive: YYYY-MM-DD <slug>"
    ```
 
-5. Optionally follow up with `update-stack` to update CURRENT.md to reflect the change.
+5. Follow up with `update-stack` to update CURRENT.md.
 
 ---
 
 ## File Conventions
 
-- **CURRENT.md** — always reflects present state; never contains historical information
-- **Archive slugs** — `YYYY-MM-DD_kebab-case-description.md` — no spaces, no uppercase, no special chars except hyphens and underscores
+- **CURRENT.md** — present state only; no historical information
+- **Archive slugs** — `YYYY-MM-DD_kebab-case-description.md`
 - **Change types:** `Infrastructure replacement`, `Addition`, `Removal`, `Configuration`, `Upgrade`, `Documentation`
-- **Commit messages:** `docs: update stack snapshot YYYY-MM-DD` for CURRENT.md; `archive: YYYY-MM-DD <slug>` for archive entries
-- **No secrets** — reference secret storage location (e.g., "API key in `.env`"), never put actual key values in docs
+- **Commit messages:** `docs: update stack snapshot YYYY-MM-DD` / `archive: YYYY-MM-DD <slug>` / `crons: sync scheduled tasks registry YYYY-MM-DD`
+- **No secrets** — reference where a secret is stored, never the value itself
+
+---
+
+## Wiring into Agent Files
+
+After installing this skill, add references to it in your agent's instruction files so it gets invoked automatically.
+
+**In `TOOLS.md` (or equivalent):**
+```markdown
+## Stack Documentation (stack-summary skill)
+- **Skill:** `stack-summary` (loaded from `~/.agents/skills/stack-summary/`)
+- **Stack dir:** `~/STACK/CURRENT.md` — current architecture snapshot
+- **Cron registry:** `~/STACK/CRONs.md` — canonical scheduled tasks registry
+- **Archive:** `~/STACK/Archive/<YYYY-MM-DD>_<slug>.md` — one file per change
+- **update-stack** → regenerate CURRENT.md (trigger: "update stack docs", "refresh the stack")
+- **sync-crons** → rewrite CRONs.md (trigger: "sync cron docs", "document this cron")
+- **archive-change** → new Archive/ entry (trigger: "archive this change")
+- Always run sync-crons after adding or removing any cron, service, or scheduled task
+```
+
+**In `MEMORY.md` hard rules:**
+```markdown
+- **Stack docs:** update `~/STACK/CRONs.md` whenever adding/removing any cron/systemd job
+```
 
 ---
 
 ## Script Reference
 
-`scripts/gather_state.sh` — collects system state from:
-- OpenClaw version (`openclaw --version`)
-- Config parsing (`~/.openclaw/openclaw.json`) — agents, plugins, providers, memory backend
+`scripts/gather_state.sh` collects system state from:
+- OpenClaw version and config (`~/.openclaw/openclaw.json`) — agents, plugins, providers
 - Active systemd user services
 - Listening ports (`ss -tlnp`)
-- Installed skills (`~/.openclaw/skills/`)
-- Extensions (`~/.openclaw/extensions/`)
+- Installed skills and extensions
 - Auxiliary services (`~/aux_services/`)
 - Local binaries (`~/bin/`)
-- Cron registry (`~/.openclaw/workspace/CRONs.md`)
 
-Run it manually with:
-```bash
-bash ~/aux_services/stack-summary/scripts/gather_state.sh
-```
+Override paths via environment variables at the top of the script (`OPENCLAW_DIR`, `AUX_DIR`, `BIN_DIR`).
 
-> **Tip:** If your OpenClaw or STACK directory is not at the default location, update the path variables at the top of `gather_state.sh` before running.
