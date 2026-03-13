@@ -2,30 +2,43 @@
 
 ## What this repo is
 
-A monorepo of **OpenClaw skills** — instruction bundles that teach an AI agent how to perform specific operations. Each skill is a directory under `skills/` containing a `SKILL.md` and optional `scripts/`.
+A GitHub-published collection of **OpenClaw skills** — instruction bundles that teach an AI agent how to perform specific operations. Each skill lives under `skills/<name>/` and contains a `SKILL.md` plus optional `scripts/`.
 
-OpenClaw loads skills from `~/.agents/skills/`. This repo is the **source of truth**; skills are deployed to that path via rsync.
+Skills are distributed via GitHub and installed with `npx skills add`. This repo is the **authoring source**; it is not loaded directly by OpenClaw.
 
-## Deploy commands
+## Installing skills
 
 ```bash
-# Deploy all skills to ~/.agents/skills/
-bash deploy-openclaw.sh
+# Install all skills from this repo
+npx skills add https://github.com/MaximeBaudette/agent-skills -g -a openclaw -y
 
-# Deploy one skill
-bash deploy-openclaw.sh stack-summary
-
-# From inside a skill (convenience wrapper):
-bash skills/stack-summary/scripts/deploy.sh
+# Install a specific skill
+npx skills add https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary -g -a openclaw -y
 ```
 
-No restart required — OpenClaw picks up changes on the next skill load. There are no build, test, or lint steps.
+`npx skills add` installs skills into `~/.agents/skills/`. OpenClaw picks them up on the next skill load — no restart needed.
+
+## Local development
+
+`deploy-openclaw.sh` is a **dev-only shortcut** for testing skills locally without a GitHub push. Use it while iterating on a skill in progress:
+
+```bash
+# Sync all skills to ~/.agents/skills/ for local testing
+bash deploy-openclaw.sh
+
+# Sync a specific skill
+bash deploy-openclaw.sh stack-summary
+```
+
+Once a skill is ready, push to GitHub and install via `npx skills add` as above.
+
+There are no build, test, or lint steps.
 
 ## Architecture
 
 ### Skill structure
 
-Each skill directory must contain a `SKILL.md` at its root (the deploy script skips directories without one). The `SKILL.md` serves dual purpose: it's both the human docs and the instruction file OpenClaw reads.
+Each skill directory must contain a `SKILL.md` at its root (the deploy script and `npx skills add` both skip directories without one). The `SKILL.md` serves dual purpose: it's both the human docs and the instruction file OpenClaw reads.
 
 ```
 skills/<name>/
@@ -53,7 +66,7 @@ The body documents named **operations** (e.g., `update-stack`, `archive-change`,
 ### Key conventions
 
 - **`description` frontmatter is critical** — it's how OpenClaw matches user intent to the skill. It should include explicit trigger phrases in quotes and implicit scenarios.
-- **Operations reference scripts by absolute path** (e.g., `bash ~/aux_services/stack-summary/scripts/gather_state.sh`), not relative paths, because the agent runs them from arbitrary working directories.
+- **Scripts must be self-contained** — they are installed to `~/.agents/skills/<name>/scripts/` and must not hardcode paths back to this source repo. Reference only paths in the user's environment (e.g., `~/STACK/`, `~/.openclaw/`).
 - **Scripts use `set -euo pipefail`** and accept configuration via environment variables with `${VAR:-default}` fallbacks.
 - **No secrets in docs** — reference the storage location (e.g., "API key in `.env`"), never the value.
 - **Commit message conventions are part of the skill spec** — document them explicitly so the agent uses consistent formats.
@@ -61,10 +74,8 @@ The body documents named **operations** (e.g., `update-stack`, `archive-change`,
 ### Adding a new skill
 
 1. Create `skills/<name>/SKILL.md` with frontmatter + operation docs
-2. Add scripts to `skills/<name>/scripts/` if needed
-3. Run `bash deploy-openclaw.sh <name>` to install
-4. Add a row to the README table
-
-### gather_state.sh note
-
-`skills/stack-summary/scripts/gather_state.sh` reads `~/.openclaw/workspace/CRONs.md` for cron data. The canonical cron registry has moved to `~/STACK/CRONs.md` — if you update this script, change that reference.
+2. Add scripts to `skills/<name>/scripts/` if needed (keep them self-contained — no source repo paths)
+3. Test locally with `bash deploy-openclaw.sh <name>`
+4. Push to GitHub
+5. Install via `npx skills add <github-url>`
+6. Add a row to the README table
