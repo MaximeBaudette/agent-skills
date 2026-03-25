@@ -1,3 +1,9 @@
+---
+name: agent-review
+description: "Weekly or on-demand audit of all agent workspaces (Cooper, Andy, MARS). Checks for stale script references, wrong skill paths, snapshot count drift, config vs file drift, and contradictory instructions. Auto-fixes simple unambiguous issues. Emails Maxime only for items requiring judgment. Silent on clean runs. MARS-only — do not invoke as Cooper or Andy."
+homepage: https://github.com/MaximeBaudette/agent-skills
+---
+
 # Skill: agent-review
 
 Invoked on-demand or weekly (Mondays). **MARS only** — do not run this as Cooper or Andy.
