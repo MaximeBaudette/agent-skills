@@ -2,17 +2,38 @@
 name: latex
 description: Compile LaTeX documents using the Tectonic engine. Use this skill whenever the user wants to create, edit, or compile a LaTeX document — letters, articles, CVs, reports. Tectonic is a self-contained compiler that auto-downloads only the packages it needs.
 metadata:
-  { "openclaw": { "emoji": "📄", "os": ["linux", "darwin"], "requires": { "bins": ["tectonic"] } } }
+  { "openclaw": { "emoji": "📄", "os": ["linux", "darwin"] } }
 ---
 
 # LaTeX Skill (via Tectonic)
 
 ## Key facts
 
-- **Compiler binary:** `/home/mars/bin/tectonic` (already installed, v0.15.0)
-- **Projects live in:** `/home/mars/.openclaw/agent_mars/correspondance/<project-name>/`
+- **Compiler:** [Tectonic](https://tectonic-typesetting.github.io/) — single binary, auto-downloads packages on first compile, no full TeX Live needed
+- **Projects live in:** `~/.openclaw/agent_mars/correspondance/<project-name>/`
 - **Output always goes to:** `<project-dir>/output/<name>.pdf`
 - **Multi-file works:** tectonic resolves `\input{}` relative to where you run it from
+
+---
+
+## Setup (first time — or if compile fails with "tectonic not found")
+
+**Step 1: Check if tectonic is already available**
+```bash
+command -v tectonic || ls $HOME/bin/tectonic 2>/dev/null || echo "NOT FOUND"
+```
+
+**Step 2: If not found, install it**
+```bash
+bash ~/.agents/skills/latex/scripts/setup.sh
+```
+This downloads the tectonic binary from GitHub releases into `~/bin/`. Only needed once per machine.
+
+**Step 3: Confirm**
+```bash
+$(command -v tectonic || echo $HOME/bin/tectonic) --version
+```
+Expected output: `tectonic X.Y.Z`
 
 ---
 
@@ -52,7 +73,7 @@ output/
 
 **One command — run from the project directory:**
 ```bash
-cd /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME && mkdir -p output && /home/mars/bin/tectonic --outdir output main.tex
+TECTONIC=$(command -v tectonic || echo $HOME/bin/tectonic) && cd /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME && mkdir -p output && $TECTONIC --outdir output main.tex
 ```
 
 Replace `main.tex` with the actual entrypoint filename if different.
@@ -103,7 +124,7 @@ Tectonic prints errors with file name and line number. Read the output carefully
 
 | Problem | Fix |
 |---|---|
-| `tectonic: command not found` | Use full path: `/home/mars/bin/tectonic` |
+| `tectonic: command not found` | Run setup: `bash ~/.agents/skills/latex/scripts/setup.sh` |
 | `cannot find file X.tex` | Make sure you `cd` into the project dir before running tectonic |
 | Packages downloading slowly | Normal on first compile — tectonic auto-downloads only what's needed |
 | `\input{file}` not found | Run tectonic from the project root (the `cd` command above handles this) |
