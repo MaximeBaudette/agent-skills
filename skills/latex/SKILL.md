@@ -7,117 +7,103 @@ metadata:
 
 # LaTeX Skill (via Tectonic)
 
-Compile LaTeX documents locally using [Tectonic](https://tectonic-typesetting.github.io/) — a single binary that auto-downloads only the packages your document needs.
+## Key facts
 
-## Workspace Layout
+- **Compiler binary:** `/home/mars/bin/tectonic` (already installed, v0.15.0)
+- **Projects live in:** `/home/mars/.openclaw/agent_mars/correspondance/<project-name>/`
+- **Output always goes to:** `<project-dir>/output/<name>.pdf`
+- **Multi-file works:** tectonic resolves `\input{}` relative to where you run it from
 
-All LaTeX projects live under `~/.openclaw/agent_mars/correspondance/`:
+---
 
+## Task 1 — Create a new project
+
+Do these steps in order. No exploration needed.
+
+**Step 1:** Create the directory structure
+```bash
+mkdir -p /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output
 ```
-~/.openclaw/agent_mars/correspondance/
-├── templates/              ← (optional) shared templates — see Templates section
-└── <project-name>/
-    ├── latex-project.json  ← project config (entrypoints, upload targets)
-    ├── main.tex            ← your source (multi-file via \input is supported)
-    └── output/
-        └── main.pdf        ← compiled output (gitignored)
-```
 
-## Per-Project Config (`latex-project.json`)
-
-Each project has a `latex-project.json` at its root:
-
+**Step 2:** Create `/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/latex-project.json`
 ```json
 {
-  "name": "cover-letter",
+  "name": "PROJECT_NAME",
   "entrypoints": [
-    { "file": "main.tex", "label": "Main document" },
-    { "file": "appendix.tex", "label": "Appendix only" }
+    { "file": "main.tex", "label": "Main document" }
   ],
   "upload": {
-    "gdrive_folder_id": "1AbCdEfGhIjKlMnOp",
-    "email": "maxime@example.com"
+    "gdrive_folder_id": null,
+    "email": null
   }
 }
 ```
 
-- **`entrypoints`**: list of `.tex` files tectonic can compile as root documents. The first one is the default.
-- **`upload.gdrive_folder_id`**: if set, the compiled PDF is auto-uploaded to this Google Drive folder after compilation. Use `gws drive` to find folder IDs.
-- **`upload.email`**: if set, compilation output reminds you to send the PDF to this address. Sending is done manually via `gws gmail send` with `--attachment`.
+**Step 3:** Create `/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/main.tex` with the document content.
 
-## Scripts
+**Step 4:** Create `/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/.gitignore`
+```
+output/
+```
 
-All scripts live in `~/.agents/skills/latex/scripts/` (or their source in `~/aux_services/maximes-skills/skills/latex/scripts/`).
+---
 
-### Setup (first time only)
+## Task 2 — Compile a project
+
+**One command — run from the project directory:**
 ```bash
-bash ~/.agents/skills/latex/scripts/setup.sh
+cd /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME && mkdir -p output && /home/mars/bin/tectonic --outdir output main.tex
 ```
-Downloads the tectonic binary to `~/bin/tectonic`. Only needed once.
 
-### Create a New Project
+Replace `main.tex` with the actual entrypoint filename if different.
+
+**Output PDF will be at:**
+```
+/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output/main.pdf
+```
+
+For multi-entrypoint projects, check `latex-project.json` to see the list of `.tex` files, then compile each one the same way.
+
+---
+
+## Task 3 — Upload / share the PDF
+
+### Upload to Google Drive
 ```bash
-bash ~/.agents/skills/latex/scripts/new-project.sh <project-name>
-# Example:
-bash ~/.agents/skills/latex/scripts/new-project.sh cover-letter-acme
+/home/mars/bin/gws drive upload /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output/main.pdf --parent FOLDER_ID
 ```
-Creates the project directory with a starter `main.tex` and `latex-project.json`.
+To find a Drive folder ID: `~/bin/gws drive list --type folder`
 
-### Compile
+### Send by email (as attachment)
+Use the gws-gmail skill. The PDF is at:
+`/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output/main.pdf`
+
+### Auto-upload on compile
+Set `gdrive_folder_id` or `email` in `latex-project.json`. Then run:
 ```bash
-bash ~/.agents/skills/latex/scripts/compile.sh <project-dir> [entrypoint.tex]
-# Examples:
-bash ~/.agents/skills/latex/scripts/compile.sh ~/.openclaw/agent_mars/correspondance/cover-letter
-bash ~/.agents/skills/latex/scripts/compile.sh ~/.openclaw/agent_mars/correspondance/cover-letter letter-v2.tex
+bash /home/mars/.agents/skills/latex/scripts/compile.sh /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME
 ```
-- Compiles from the project root so `\input{chapters/intro}` and similar work correctly.
-- Output PDF lands in `<project-dir>/output/<basename>.pdf`.
-- If `latex-project.json` has a `gdrive_folder_id`, the PDF is uploaded to Google Drive automatically.
+The compile script handles auto-upload when those fields are set.
 
-## Typical Workflow
-
-1. **Create project**: `new-project.sh <name>` (or manually mkdir + create `latex-project.json`)
-2. **Edit** `main.tex` (and any included files) with your content
-3. **Compile**: `compile.sh <project-dir>` — PDF appears in `output/`
-4. **Share**: configure `upload` in `latex-project.json`, or use `gws gmail send` / `gws drive upload` manually
-
-## Multi-File Projects
-
-Tectonic runs from the project root, so `\input` and `\include` resolve relative to it:
-
-```latex
-% main.tex
-\input{sections/intro}
-\input{sections/conclusion}
-```
-
-Just make sure all `.tex` files are inside the project directory.
+---
 
 ## Templates
 
-If a `templates/` folder exists at `~/.openclaw/agent_mars/correspondance/templates/`, check it before writing a document from scratch. Templates should be self-contained `.tex` files or subdirectories with their own structure.
+Before writing a document from scratch, check if `/home/mars/.openclaw/agent_mars/correspondance/templates/` exists. If it does, look for a suitable template there and copy it into the new project directory.
 
-To use a template:
-1. Copy the template into your new project directory
-2. Rename the main file to match the entrypoint in `latex-project.json`
-3. Edit content
+---
 
-## Google Drive Upload
+## Compile errors
 
-To find the folder ID for `gdrive_folder_id`:
-```bash
-~/bin/gws drive list --type folder
-```
-The ID is the string in the `id` column.
+Tectonic prints errors with file name and line number. Read the output carefully — it is usually a missing `\end{}`, typo in a package name, or encoding issue. Fix the `.tex` file and re-run the compile command.
 
-To upload manually (without auto-upload):
-```bash
-~/bin/gws drive upload <path-to.pdf> --parent <folder-id>
-```
+---
 
 ## Troubleshooting
 
-- **tectonic not found**: run `bash ~/.agents/skills/latex/scripts/setup.sh`
-- **Missing packages**: tectonic downloads them automatically on first compile — just needs internet access
-- **Compile errors**: check stderr output; tectonic reports line numbers and errors clearly
-- **`\input` file not found**: make sure you're running `compile.sh` (which sets CWD to project root), not tectonic directly
+| Problem | Fix |
+|---|---|
+| `tectonic: command not found` | Use full path: `/home/mars/bin/tectonic` |
+| `cannot find file X.tex` | Make sure you `cd` into the project dir before running tectonic |
+| Packages downloading slowly | Normal on first compile — tectonic auto-downloads only what's needed |
+| `\input{file}` not found | Run tectonic from the project root (the `cd` command above handles this) |
