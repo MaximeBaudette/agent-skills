@@ -32,20 +32,18 @@ hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/s
 git clone git@github.com:MaximeBaudette/agent-skills.git
 cd agent-skills
 
-# Deploy all skills to ~/.agents/skills/ for local testing
-bash deploy-openclaw.sh
-
-# Deploy a specific skill
-bash deploy-openclaw.sh stack-summary
+# ONLY for hot-reload during active development — not a production deploy step
+bash deploy-openclaw.sh          # all skills
+bash deploy-openclaw.sh stack-summary  # specific skill
 ```
 
-After local testing, push to GitHub and reinstall via `npx skills add` or `hermes skills install` above.
+> **Note:** `npx skills add` already mirrors directly to `~/.agents/skills/`, so the deploy script is only needed when actively debugging and you need hot-reload without a GitHub push. Once tested: push to GitHub and update via `npx skills add`.
 
 ### Adding a skill
 
 1. Create `skills/<name>/SKILL.md` with YAML frontmatter (`name`, `description`) and operation docs
 2. Add scripts to `skills/<name>/scripts/` if needed
-3. Run `bash deploy-openclaw.sh <name>` to install locally for testing
+3. Test locally with `bash deploy-openclaw.sh <name>` (hot-reload only)
 4. Push to GitHub: `git push origin main`
-5. Reinstall from GitHub: `npx skills add ... -g -a github-copilot -y`
+5. Install/update: `npx skills add ... -g -a github-copilot -y`
 6. Add a row to the table above

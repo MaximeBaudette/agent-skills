@@ -231,12 +231,14 @@ After installing this skill, add references to it in your agent's instruction fi
 - Always run sync-crons after adding or removing any cron, service, or scheduled task
 ```
 
-**Install command (GitHub Copilot):**
+**Install command (GitHub Copilot — `npx skills add` mirrors to `~/.agents/skills/`):**
 ```bash
 npx skills add https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary -g -a github-copilot -y
 ```
 
-**Install command (Hermes Agent):**
+> Use this to both install and update. The local `deploy-openclaw.sh` script is only for hot-reload during active development.
+
+**Install command (Hermes Agent — separate skill system, `~/.hermes/skills/`):**
 ```bash
 hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary
 ```
