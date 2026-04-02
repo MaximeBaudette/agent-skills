@@ -1,25 +1,22 @@
 #!/usr/bin/env bash
-# gather_state.sh — Collect current OpenClaw host stack state
-# Output: structured text for use by an AI assistant (or render_current.py)
+# gather_state.sh — Collect current agent host stack state (Hermes priority)
+# Output: structured text for use by an AI assistant
 # Usage: bash gather_state.sh
-#        bash gather_state.sh --json   (future: JSON output)
 #
 # Configuration (override via environment variables):
-#   OPENCLAW_DIR   — path to openclaw config dir  (default: ~/.openclaw)
-#   OPENCLAW_WS    — path to openclaw workspace   (default: ~/.openclaw/workspace)
-#   AUX_DIR        — path to auxiliary services   (default: ~/aux_services)
-#   BIN_DIR        — path to local binaries       (default: ~/bin)
+#   HERMES_DIR    — path to hermes config dir     (default: ~/.hermes)
+#   AUX_DIR       — path to auxiliary services    (default: ~/aux_services)
+#   BIN_DIR       — path to local binaries        (default: ~/bin)
+#   STACK_DIR     — path to STACK docs            (default: ~/STACK)
 
 set -euo pipefail
 
-OPENCLAW_DIR="${OPENCLAW_DIR:-$HOME/.openclaw}"
-OPENCLAW_WS="${OPENCLAW_WS:-$HOME/.openclaw/workspace}"
-OPENCLAW_CONFIG="$OPENCLAW_DIR/openclaw.json"
+HERMES_DIR="${HERMES_DIR:-$HOME/.hermes}"
 AUX_DIR="${AUX_DIR:-$HOME/aux_services}"
 BIN_DIR="${BIN_DIR:-$HOME/bin}"
+STACK_DIR="${STACK_DIR:-$HOME/STACK}"
 
-echo "=== GATHER_STATE: OpenClaw Host Stack ==="
-echo "timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+echo "=== GATHER_STATE: Agent Host Stack (Hermes $(date -u +%Y-%m-%dT%H:%M:%SZ)) ==="
 echo "host: $(hostname)"
 echo ""
 
@@ -30,45 +27,27 @@ echo "python3: $(python3 --version 2>/dev/null || echo 'not found')"
 echo "npm: $(npm --version 2>/dev/null || echo 'not found')"
 echo ""
 
-# --- OpenClaw ---
-echo "--- OPENCLAW ---"
-openclaw --version 2>/dev/null || echo "version: unknown"
-
-python3 - << PYEOF
-import json, sys, os
-
-config_path = os.path.expanduser("$OPENCLAW_CONFIG")
-try:
-    c = json.load(open(config_path))
-    print(f"update_channel: {c.get('update', {}).get('channel', '?')}")
-    print(f"memory_backend: {c.get('memory', {}).get('backend', '?')}")
-    
-    defaults = c.get('agents', {}).get('defaults', {})
-    print(f"primary_model: {defaults.get('model', {}).get('primary', '?')}")
-    print(f"compaction_model: {defaults.get('compaction', {}).get('model', '?')}")
-    print(f"context_tokens: {defaults.get('contextTokens', '?')}")
-    
-    agents = [a.get('id') for a in c.get('agents', {}).get('list', [])]
-    print(f"agents: {', '.join(agents)}")
-    
-    plugins = c.get('plugins', {}).get('entries', {})
-    enabled = [k for k, v in plugins.items() if v.get('enabled', False)]
-    disabled = [k for k, v in plugins.items() if not v.get('enabled', True)]
-    print(f"plugins_enabled: {', '.join(enabled)}")
-    if disabled:
-        print(f"plugins_disabled: {', '.join(disabled)}")
-    
-    providers = list(c.get('models', {}).get('providers', {}).keys())
-    print(f"llm_providers: {', '.join(providers)}")
-except Exception as e:
-    print(f"ERROR reading openclaw.json: {e}")
-PYEOF
-echo ""
+# --- Agent Frameworks ---
+echo "--- AGENT_FRAMEWORKS ---"
+if command -v hermes >/dev/null 2>&1; then
+  echo "hermes: $(hermes --version 2>/dev/null || echo 'installed')"
+  echo "profiles: $(ls "$HERMES_DIR"/profiles/ 2>/dev/null | sed 's/.*\\/\\(.*\\)/\\1/' | tr '\\n' ' ' || echo 'none')"
+  echo "skills:"
+  hermes skills list 2>/dev/null || echo "skills list unavailable"
+  echo "crons (default profile):"
+  hermes crons list 2>/dev/null || echo "crons list unavailable"
+  echo ""
+fi
+if command -v openclaw >/dev/null 2>&1; then
+  echo "openclaw: $(openclaw --version 2>/dev/null || echo 'installed')"
+  openclaw status 2>/dev/null || true
+  echo ""
+fi
 
 # --- Systemd user services ---
 echo "--- SYSTEMD_SERVICES ---"
 systemctl --user list-units --type=service --state=active --no-pager --plain 2>/dev/null \
-  | grep -v "^UNIT\|^Legend\|^$\|loaded units listed" \
+  | grep -v "^UNIT\|^Legend\|^$" \
   | awk '{print $1, $3}' \
   || echo "systemctl not available"
 echo ""
@@ -78,29 +57,24 @@ echo "--- PORTS ---"
 ss -tlnp 2>/dev/null | grep LISTEN | awk '{print $4, $6}' || echo "ss not available"
 echo ""
 
-# --- Skills ---
-echo "--- SKILLS ---"
-ls "$OPENCLAW_DIR/skills/" 2>/dev/null | tr '\n' ' ' && echo ""
-echo ""
-
-# --- Extensions ---
-echo "--- EXTENSIONS ---"
-ls "$OPENCLAW_DIR/extensions/" 2>/dev/null | tr '\n' ' ' && echo ""
+# --- Skills dirs ---
+echo "--- SKILLS_DIRS ---"
+ls "$HERMES_DIR/skills/" 2>/dev/null | tr '\\n' ' ' && echo "" || echo "no skills dir"
 echo ""
 
 # --- Auxiliary services ---
 echo "--- AUX_SERVICES ---"
-ls "$AUX_DIR/" 2>/dev/null | tr '\n' ' ' && echo ""
+ls "$AUX_DIR/" 2>/dev/null | tr '\\n' ' ' && echo ""
 echo ""
 
 # --- Key binaries ---
 echo "--- BINARIES ---"
-ls "$BIN_DIR/" 2>/dev/null | tr '\n' ' ' && echo ""
+ls "$BIN_DIR/" 2>/dev/null | head -10 | tr '\\n' ' ' && echo ""
 echo ""
 
 # --- Cron registry ---
-echo "--- CRONS ---"
-cat "${STACK_DIR:-$HOME/STACK}/CRONs.md" 2>/dev/null || echo "CRONs.md not found at ${STACK_DIR:-$HOME/STACK}/CRONs.md"
+echo "--- CRONS_REGISTRY ---"
+cat "${STACK_DIR}/CRONs.md" 2>/dev/null || echo "CRONs.md not found"
 echo ""
 
 echo "=== END GATHER_STATE ==="
