@@ -1,6 +1,6 @@
 ---
 name: stack-summary
-description: "Maintain living stack documentation for an OpenClaw-powered AI agent host. Use this skill whenever: updating STACK/CURRENT.md after infrastructure changes, creating archive entries for deprecated components, documenting a new service/skill/plugin being added or removed, syncing the cron/service registry, or when the user asks to 'update stack docs', 'document this change', 'archive this setup', 'sync cron docs', 'update CRONs.md', 'what's in the stack', or 'generate stack summary'. Also use this when you've just finished installing or removing any service, plugin, skill, tool, or cron and the user hasn't explicitly asked — proactively suggest documenting it."
+description: "Maintain living stack documentation for an AI agent host. Use this skill whenever: updating STACK/CURRENT.md after infrastructure changes, creating archive entries for deprecated components, documenting a new service/skill/plugin being added or removed, syncing the cron/service registry, or when the user asks to 'update stack docs', 'document this change', 'archive this setup', 'sync cron docs', 'update CRONs.md', 'what's in the stack', or 'generate stack summary'. Also use this when you've just finished installing or removing any service, plugin, skill, tool, or cron and the user hasn't explicitly asked — proactively suggest documenting it."
 ---
 
 # Stack Summary Skill
@@ -49,9 +49,8 @@ Three operations, used in combination:
 
 3. Update each section in `CURRENT.md` from the script output:
    - **Runtime Stack** — node, python3, npm versions from `--- RUNTIME ---`
-   - **OpenClaw** section — version, plugins, agents, providers from `--- OPENCLAW ---`
+   - **Agent Framework** section — version, profiles/agents, providers from `--- HERMES ---` or `--- OPENCLAW ---`
    - **Memory Architecture** — verify services and endpoints are current
-   - **Plugins table** — update enabled/disabled from `plugins_enabled` / `plugins_disabled`
    - **Skills** — update from `--- SKILLS ---`
    - **Auxiliary Services** — update from `--- AUX_SERVICES ---`
    - **Ports & Networking** — update from `--- PORTS ---`
@@ -71,27 +70,56 @@ Three operations, used in combination:
 ### When to use
 - After adding or removing any cron job, systemd service, or scheduled task
 - When the user asks "sync cron docs", "update CRONs.md", or "document this cron"
-- After any OpenClaw cron change (`openclaw cron add/delete`)
+- After any agent framework cron change (Hermes or OpenClaw)
 
 ### Steps
 
-1. Collect live cron state:
+1. **Detect installed agent frameworks:**
    ```bash
+   which hermes 2>/dev/null && echo "hermes installed"
+   which openclaw 2>/dev/null && echo "openclaw installed"
+   ```
+
+2. **Collect Hermes cron state** (if Hermes is installed):
+   ```bash
+   # Default profile (MARS)
+   hermes cron list
+
+   # All additional profiles (one command per profile dir found)
+   for profile in ~/.hermes/profiles/*/; do
+     name=$(basename "$profile")
+     echo "=== Profile: $name ==="
+     hermes -p "$name" cron list
+   done
+   ```
+
+3. **Collect OpenClaw cron state** (if OpenClaw is installed):
+   ```bash
+   # Default agent
    openclaw cron list
+
+   # All additional agents defined in openclaw.json
+   # (read agents.list from ~/.openclaw/openclaw.json and loop)
+   ```
+
+4. **Collect system-level state:**
+   ```bash
    crontab -l
    systemctl --user list-units --type=service --state=active --no-pager
    ```
 
-2. Read current `~/STACK/CRONs.md` to see what's already documented.
+5. Read current `~/STACK/CRONs.md` to see what's already documented.
 
-3. Rewrite `~/STACK/CRONs.md` with three sections:
-   - **OpenClaw Cron Jobs** — from `openclaw cron list` (ID, Name, Schedule, Status, Notes)
-   - **System Cron Jobs** — from `crontab -l` (Name, Schedule, Command, Notes)
-   - **Systemd User Services** — from `systemctl --user` (Service, Status, Port, Notes)
+6. Rewrite `~/STACK/CRONs.md` with sections based on what's installed:
+   - **Hermes Cron Jobs** (if Hermes installed) — one subsection per profile (default + each in `~/.hermes/profiles/`): ID, Name, Schedule, Skills, Notes
+   - **OpenClaw Cron Jobs** (if OpenClaw installed) — one subsection per agent: ID, Name, Schedule, Status, Notes
+   - **System Cron Jobs** — from `crontab -l`: Schedule, Script, Notes
+   - **Systemd User Services** — from `systemctl --user`: Service, Status, Notes
+   - **Retired** — keep any previously documented retired/decommissioned entries
 
-4. Update the `Last updated:` date at the top.
+7. Update the `Last updated:` date at the top.
 
-5. Commit:
+8. Commit:
    ```bash
    cd ~/STACK && git add CRONs.md && git commit -m "crons: sync scheduled tasks registry YYYY-MM-DD"
    ```
@@ -213,12 +241,13 @@ After installing this skill, add references to it in your agent's instruction fi
 ## Script Reference
 
 `scripts/gather_state.sh` collects system state from:
-- OpenClaw version and config (`~/.openclaw/openclaw.json`) — agents, plugins, providers
+- Hermes version and config (`~/.hermes/config.yaml`) — profiles, providers (if installed)
+- OpenClaw version and config (`~/.openclaw/openclaw.json`) — agents, plugins, providers (if installed)
 - Active systemd user services
 - Listening ports (`ss -tlnp`)
 - Installed skills and extensions
 - Auxiliary services (`~/aux_services/`)
 - Local binaries (`~/bin/`)
 
-Override paths via environment variables at the top of the script (`OPENCLAW_DIR`, `AUX_DIR`, `BIN_DIR`).
+Override paths via environment variables at the top of the script (`HERMES_DIR`, `OPENCLAW_DIR`, `AUX_DIR`, `BIN_DIR`).
 
