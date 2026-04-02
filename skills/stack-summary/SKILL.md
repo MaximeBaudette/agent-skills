@@ -231,6 +231,16 @@ After installing this skill, add references to it in your agent's instruction fi
 - Always run sync-crons after adding or removing any cron, service, or scheduled task
 ```
 
+**Install command (GitHub Copilot):**
+```bash
+npx skills add https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary -g -a github-copilot -y
+```
+
+**Install command (Hermes Agent):**
+```bash
+hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary
+```
+
 **In `MEMORY.md` hard rules:**
 ```markdown
 - **Stack docs:** update `~/STACK/CRONs.md` whenever adding/removing any cron/systemd job
