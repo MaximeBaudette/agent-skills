@@ -31,7 +31,7 @@ echo ""
 echo "--- AGENT_FRAMEWORKS ---"
 if command -v hermes >/dev/null 2>&1; then
   echo "hermes: $(hermes --version 2>/dev/null || echo 'installed')"
-  echo "profiles: $(ls "$HERMES_DIR"/profiles/ 2>/dev/null | sed 's/.*\\/\\(.*\\)/\\1/' | tr '\\n' ' ' || echo 'none')"
+  echo "profiles: $(ls "$HERMES_DIR"/profiles/ 2>/dev/null | tr '\n' ' ' || echo 'none')"
   echo "skills:"
   hermes skills list 2>/dev/null || echo "skills list unavailable"
   echo "crons (default profile):"
