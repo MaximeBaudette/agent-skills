@@ -25,6 +25,13 @@ The skill works at the **message level, not the thread level**. Every fetch, cla
 
 ## Modes
 
+Invocation is resolved by selector presence:
+
+- **no selector** (`email_id` absent and `query` absent) → run **Inbox sweep**
+- **`email_id` only** → run a **targeted single-message** triage
+- **`query` only** → run a **targeted query** triage
+- **both selectors present** → **invalid invocation**; stop immediately with **no mutations**
+
 ### Inbox sweep
 
 Inbox sweep mode uses the **current Inbox only**:
@@ -47,7 +54,7 @@ Targeted run uses **exactly one selector**:
 - `query=<gmail_query>`
 
 Rules:
-- Provide **exactly one selector**. If both are present, or neither is present, stop with no mutations.
+- Provide **exactly one selector**. If both are present, stop with no mutations.
 - `email_id` targets one Gmail message by message ID.
 - `query` matches **all messages**, including non-Inbox mail.
 - A targeted `query` still processes results as **individual Gmail messages**, never as threads.
@@ -142,11 +149,12 @@ First decide whether the message is actionable for MARS.
 Invoke a **MARS follow-up workflow**.
 
 MARS follow-up workflow contract:
-- **fetch by Gmail message ID**
-- take only **obvious safe actions**
-- **avoid risky or user-sensitive actions**
-- do not reply, send, delete, forward, or make high-impact changes unless the safety is obvious and the action is clearly routine
-- **summarize what was done**
+- **minimum required input:** Gmail `message_id`
+- **required behavior:** fetch the message by Gmail message ID, inspect the full payload, and take only obvious safe actions
+- **forbidden behavior unless clearly routine and safe:** reply, send, delete, forward, or make high-impact changes
+- **minimum required output:** a concise summary of the actions taken, or a no-op summary when no safe action applies
+- **success:** the safe action(s) complete and the workflow returns its summary
+- **failure:** any fetch, inspection, or action error leaves the message untouched and the workflow reports failure
 
 If the **MARS follow-up workflow** succeeds:
 - Inbox message: archive and mark read
@@ -171,6 +179,13 @@ If it is a targeted non-Inbox message:
 
 Message Maxime directly from triage.
 Do **not** use `delegate` for `unsure` mail.
+
+Direct escalation interface:
+
+- **minimum required input:** Gmail `message_id` plus a short reason triage is unsure
+- **minimum required output:** a delivered alert that clearly identifies the message and preserves the reason
+- **success:** the alert is handed off to Maxime and recorded as sent
+- **failure:** the alert cannot be delivered; leave the message untouched and continue
 
 The escalation should include the Gmail message ID and a short explanation of why triage was unsure.
 
