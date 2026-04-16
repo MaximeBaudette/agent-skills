@@ -23,6 +23,9 @@ The skill works at the **message level, not the thread level**. Every fetch, cla
 `MARS-owned` is either handled by MARS directly or cleaned up if it is non-actionable.
 `unsure` is escalated to Maxime directly from this skill and must **not** be routed through `delegate`.
 
+Direct alerting to Maxime is an internal `email-triage` behavior, not a `delegate` call.
+The MARS follow-up path is also internal to `email-triage`; it is a triage-owned execution path, not the external `delegate` skill.
+
 ## Modes
 
 Invocation is resolved by selector presence:
@@ -67,6 +70,7 @@ Before doing anything else, run a Google Workspace auth check.
 - If auth is not valid, **alert Maxime** and stop.
 - A pre-run auth failure causes **zero mutations** across the run.
 - Never attempt re-auth inside this skill.
+- This alert is sent by `email-triage` itself and does not use `delegate`.
 
 ## Run semantics
 
@@ -76,7 +80,8 @@ That means:
 - each message is handled independently
 - a failure on one message does not roll back successful work on earlier messages
 - partial-run outcomes are acceptable
-- per-message fetch/search failure leaves that message untouched and continues with others
+- selector/query enumeration failure leaves that selector expansion path untouched and stops that path
+- per-message fetch failure leaves that message untouched and continues with others
 
 Inbox sweep must not rely on any memory-based duplicate tracking. If a message is still in Inbox, it is eligible for future inbox sweeps. Inbox membership is the source of truth.
 
@@ -146,7 +151,7 @@ First decide whether the message is actionable for MARS.
 
 ##### Actionable `MARS-owned`
 
-Invoke a **MARS follow-up workflow**.
+Invoke the **MARS follow-up workflow**, an internal triage-owned execution path.
 
 MARS follow-up workflow contract:
 - **minimum required input:** Gmail `message_id`
@@ -214,8 +219,9 @@ These rules are mandatory and explicit:
 
 ## Failure handling summary
 
-- Pre-run auth failure → alert Maxime, stop, zero mutations.
-- Per-message fetch/search failure → leave that message untouched and continue.
+- Pre-run auth failure → alert Maxime from `email-triage`, stop, zero mutations.
+- Selector/query enumeration failure → stop that selector expansion path; no messages from that selector are mutated.
+- Per-message fetch failure → leave that message untouched and continue.
 - Parse/classification failure → classify as `unsure`.
 - Delegate failure → leave the message untouched.
 - MARS follow-up failure → leave the message untouched.
