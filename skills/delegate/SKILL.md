@@ -10,7 +10,7 @@ license: MIT
 
 ## Purpose and Scope
 
-This SKILL documents the contract for a reusable "delegate" skill used to hand off tasks from MARS to other sub-agents. It defines required inputs, supported targets, transport details, success/failure semantics, and expected behaviour when the transport path fails. Scope: delivery of delegation messages only — this skill does NOT perform the delegated work.
+This SKILL documents the contract for a reusable "delegate" skill used to hand off tasks from MARS to other sub-agents. It defines required inputs, supported targets, success/failure semantics, and expected behaviour when the transport path fails. Scope: delivery of delegation messages only — this skill does NOT perform the delegated work.
 
 ## Supported targets
 
@@ -23,49 +23,110 @@ The delegate skill MUST accept these inputs (required inputs):
 
 - target (string): one of `andy`, `cooper`
 - task_source (string): origin of the task (e.g., `email-triage`)
-- context (object|string): a short structured payload or summary useful to the target
+- context (object|string): a short structured payload or summary useful to the target (see "Context shape" below)
 - reference_id (string): canonical ID used to fetch the full artifact (e.g., Gmail message ID)
 
-## Transport path (current)
 
-The current transport path used by MARS to reach Andy and Cooper in Maxime's setup is posting messages to the shared Telegram group "My Team" (chat ID: -1003989798620) and mentioning the canonical handles `@andy` or `@cooper`. The delegate skill owns this transport path for now and documents its usage.
+## Context shape (recommended)
 
-Example transport payload (conceptual):
+The `context` input is intentionally lightweight. It MAY be either a plain string summary or a small JSON object. Do not embed large artifacts — include a `reference_id` so the target agent can fetch the full item.
+
+Recommended minimal object shape (informational, not required):
+
+- title (string): short human-facing title
+- snippet (string): 1-2 sentence summary
+- metadata (object): small map of extra fields (e.g., {"deadline": "2026-04-20"})
+
+This keeps the contract simple while making it clear how to use `context` in practice.
+
+## Success and error (machine-readable output)
+
+Implementations MUST return a deterministic, machine-readable envelope on success or error. This makes downstream automation and auditing reliable.
+
+Success envelope (example fields):
+
+- status: "delivered" (string)
+- timestamp: ISO-8601 timestamp (string)
+- transport: object {
+  - name: string (e.g., "telegram")
+  - details: object (transport-specific metadata)
+}
+- transport_message_id: string|null (ID returned by transport)
+- target: string (normalized target)
+- task_source: string
+- reference_id: string
+
+JSON example (success):
+
+```json
+{
+  "status": "delivered",
+  "timestamp": "2026-04-15T12:34:56Z",
+  "transport": { "name": "telegram", "details": { "chat_id": -1003989798620 } },
+  "transport_message_id": "1234567890",
+  "target": "andy",
+  "task_source": "email-triage",
+  "reference_id": "GMAIL_MSG_1234567890"
+}
+```
+
+Error envelope (example fields):
+
+- status: "error" (string)
+- code: string (machine-readable error code, e.g., `invalid_input`, `transport_error`, `auth_error`, `not_found`)
+- message: human-readable explanation (string)
+- retryable: boolean (true if caller may retry)
+- details: optional object for transport or validation metadata
+- target, task_source, reference_id: echoed where applicable
+
+JSON example (error):
+
+```json
+{
+  "status": "error",
+  "code": "transport_error",
+  "message": "Telegram API returned 401: bot token invalid",
+  "retryable": false,
+  "details": { "http_status": 401 },
+  "target": "cooper",
+  "task_source": "email-triage",
+  "reference_id": "GMAIL_MSG_987654321"
+}
+```
+
+
+## Expected behaviour and responsibilities
+
+- Validate required inputs: `target`, `task_source`, `context`, `reference_id`. Missing required inputs → immediate error (use `code: "invalid_input"`).
+- Normalize `target` to one of the supported targets or return validation error.
+- Produce a transport payload suitable for the chosen transport and attempt delivery.
+- On delivery success: return the success envelope (see above). Do NOT assume task completion by the target agent.
+- On delivery failure: return the error envelope describing failure semantics above.
+- Do NOT mark delegation as "accepted" until transport indicates success.
+
+## Implementation note — current transport (Telegram)
+
+This section records the transport path currently used in MARS for reaching Andy and Cooper. It is an implementation note and not part of the core contract. Runtime implementations MAY use different transports, but they MUST still satisfy the contract above (inputs, validation, and machine-readable outputs).
+
+Current practice in this repository: post a message to the shared Telegram group "My Team" (chat ID: -1003989798620) and mention the canonical handles `@andy` or `@cooper`.
+
+Conceptual transport payload example:
 
 - chat_id: -1003989798620
 - text: "@andy — DELEGATE: task_source=email-triage reference_id=<id> context=<brief summary>"
 
-## What to do when the transport path fails
+Operational notes for this transport (implementation detail):
 
-If the transport path fails (e.g., Telegram API error, network, or bot token invalid):
+- Retry behaviour should be configurable; reasonable default: 3 attempts with exponential backoff.
+- On persistent transport failure, log the failure, return an error envelope, and create any internal alerting the runtime requires. Do NOT post alerts to Maxime-facing channels automatically.
 
-- Retry policy: do up to N retries with exponential backoff (implementation detail left to runtime).
-- On persistent failure: record a failure event in logs and in-memory state and return a failure response to the caller.
-- If persistent failure occurs, escalate by creating an internal alert (not a surfaced message to Maxime) so operator tooling can notice; do NOT post a message directly to Maxime's primary channels.
-
-If the transport path fails, the delegate skill should not mark the delegation as accepted.
-
-## Success semantics
-
-Success semantics: a delegation is considered successfully delivered when the transport path accepts the message (e.g., Telegram API returns HTTP 200 and message_id). Success means "accepted by transport path" — it does NOT mean the delegated task was completed by the target agent.
 
 ## Failure semantics
 
-- Transient failures (temporary network or API error): treated as retries. The delegate skill should surface a failure response to the caller only after retry exhaustion.
-- Permanent failures (invalid input, unauthenticated transport, missing target): return an explicit error to the caller with a human-readable reason and machine-readable code.
+- Transient failures (temporary network or API error): treated as retries; return `retryable: true` in error envelope until retry exhaustion.
+- Permanent failures (invalid input, unauthenticated transport, missing target): return `retryable: false` with a suitable `code`.
 - When delegation is not accepted by transport, do not mark the item as dispatched in persistent memory.
 
-## Not for surfacing messages to Maxime
-
-Explicit: This skill is NOT for surfacing unsure emails or similar messages to Maxime. It is not a user-escalation channel. Do NOT use this skill to surface unclear items to `@mars` or other Maxime-facing channels.
-
-## Expected behaviour and responsibilities
-
-- Validate required inputs: `target`, `task_source`, `context`, `reference_id`. Missing required inputs → immediate error.
-- Normalize `target` to one of the supported targets or return validation error.
-- Produce a transport payload suitable for the current transport path and attempt delivery.
-- On delivery success: return a machine-readable success envelope containing transport metadata (timestamp, transport_message_id) and do not assume task completion.
-- On delivery failure: return an error envelope describing failure semantics above.
 
 ## Examples — how email-triage should invoke delegate
 
@@ -82,6 +143,7 @@ YAML example (conceptual):
 
 JSON example (programmatic):
 
+```json
 {
   "skill": "delegate",
   "inputs": {
@@ -91,9 +153,9 @@ JSON example (programmatic):
     "reference_id": "GMAIL_MSG_987654321"
   }
 }
+```
 
 ## Notes
 
 - Keep payloads minimal; include only summary context and a reference_id so the target can fetch the full artifact independently.
-- The delegate skill owns the transport path documentation and retry/escalation behaviour; runtime implementations may vary but must adhere to this contract.
-
+- This document records the current transport path and recommended operational behaviour. Runtime implementers own the actual transport wiring and must ensure they return the machine-readable envelopes described above.
