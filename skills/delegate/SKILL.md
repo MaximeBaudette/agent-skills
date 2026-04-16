@@ -115,17 +115,16 @@ Conceptual transport payload example:
 - chat_id: -1003989798620
 - text: "@andy — DELEGATE: task_source=email-triage reference_id=<id> context=<brief summary>"
 
-Operational notes for this transport (implementation detail):
-
-- Retry behaviour should be configurable; reasonable default: 3 attempts with exponential backoff.
-- On persistent transport failure, log the failure, return an error envelope, and create any internal alerting the runtime requires. Do NOT post alerts to Maxime-facing channels automatically.
+Implementation guidance (non-normative):
+- The contract requires the error envelope to include a `retryable` boolean so callers can decide whether to retry.
+- Transport wiring (authentication, retry/backoff policies, logging, and alerting) is a runtime concern and should be implemented according to the host environment's operational practices. These concerns are intentionally out of scope for the delegate contract.
 
 
 ## Failure semantics
 
-- Transient failures (temporary network or API error): treated as retries; return `retryable: true` in error envelope until retry exhaustion.
-- Permanent failures (invalid input, unauthenticated transport, missing target): return `retryable: false` with a suitable `code`.
-- When delegation is not accepted by transport, do not mark the item as dispatched in persistent memory.
+- Transient failures (e.g., temporary network or API errors) should be reflected with `retryable: true` in the error envelope so callers can decide to retry.
+- Permanent failures (e.g., invalid input, authentication errors, missing target) should be reflected with `retryable: false` and an appropriate `code`.
+- Implementations must not mark a delegation as dispatched unless the transport indicates success.
 
 
 ## Examples — how email-triage should invoke delegate
