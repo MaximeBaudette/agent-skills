@@ -22,9 +22,9 @@ This SKILL documents the contract for a reusable "delegate" skill used to hand o
 The delegate skill MUST accept these inputs (required inputs):
 
 - target (string): one of `andy`, `cooper`
-- task_source (string): origin of the task (e.g., `email-triage`)
+- task_source (string): origin of the task (e.g., `source-system`)
 - context (object|string): a short structured payload or summary useful to the target (see "Context shape" below)
-- reference_id (string): canonical ID used to fetch the full artifact (e.g., Gmail message ID)
+- reference_id (string): canonical ID used to fetch the full artifact (e.g., transport-agnostic artifact identifier like `artifact_123456`)
 
 
 ## Context shape (recommended)
@@ -65,8 +65,8 @@ JSON example (success):
   "transport": { "name": "telegram", "details": { "chat_id": -1003989798620 } },
   "transport_message_id": "1234567890",
   "target": "andy",
-  "task_source": "email-triage",
-  "reference_id": "GMAIL_MSG_1234567890"
+  "task_source": "source-system",
+  "reference_id": "artifact_1234567890"
 }
 ```
 
@@ -85,12 +85,12 @@ JSON example (error):
 {
   "status": "error",
   "code": "transport_error",
-  "message": "Telegram API returned 401: bot token invalid",
+  "message": "Transport API returned 401: authentication failed",
   "retryable": false,
   "details": { "http_status": 401 },
   "target": "cooper",
-  "task_source": "email-triage",
-  "reference_id": "GMAIL_MSG_987654321"
+  "task_source": "source-system",
+  "reference_id": "artifact_987654321"
 }
 ```
 
