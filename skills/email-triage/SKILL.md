@@ -39,7 +39,7 @@ Invocation is resolved by selector presence:
 
 Inbox sweep mode uses the **current Inbox only**:
 
-```bash
+```text
 in:inbox
 ```
 
@@ -155,8 +155,9 @@ Invoke the **MARS follow-up workflow**, an internal triage-owned execution path.
 
 MARS follow-up workflow contract:
 - **minimum required input:** Gmail `message_id`
-- **required behavior:** fetch the message by Gmail message ID, inspect the full payload, and take only obvious safe actions
-- **forbidden behavior unless clearly routine and safe:** reply, send, delete, forward, or make high-impact changes
+- **required behavior:** the workflow must re-fetch the message by Gmail message ID as an intentional isolation step before acting; any upstream summary/context is advisory only and may not replace this fetch
+- **allowed actions:** read-only inspection plus low-risk mailbox hygiene that stays within triage scope
+- **forbidden actions:** reply, send, delete, forward, move into Inbox, or any other high-impact change
 - **minimum required output:** a concise summary of the actions taken, or a no-op summary when no safe action applies
 - **success:** the safe action(s) complete and the workflow returns its summary
 - **failure:** any fetch, inspection, or action error leaves the message untouched and the workflow reports failure
@@ -223,6 +224,7 @@ These rules are mandatory and explicit:
 - Selector/query enumeration failure → stop that selector expansion path; no messages from that selector are mutated.
 - Per-message fetch failure → leave that message untouched and continue.
 - Parse/classification failure → classify as `unsure`.
+- Invalid invocation (both selectors present) → stop immediately with no mutations.
 - Delegate failure → leave the message untouched.
 - MARS follow-up failure → leave the message untouched.
 - User-escalation failure → leave the message untouched.
