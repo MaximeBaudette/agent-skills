@@ -106,18 +106,18 @@ JSON example (error):
 
 ## Implementation note — current transport (Telegram)
 
-This section records the transport path currently used in MARS for reaching Andy and Cooper. It is an implementation note and not part of the core contract. Runtime implementations MAY use different transports, but they MUST still satisfy the contract above (inputs, validation, and machine-readable outputs).
+This is an implementation note and not part of the core contract. Runtime implementations MAY use different transports, but they MUST still satisfy the contract above (inputs, validation, and machine-readable outputs).
 
-Current practice in this repository: post a message to the shared Telegram group "My Team" (chat ID: -1003989798620) and mention the canonical handles `@andy` or `@cooper`.
+Current practice (example): post a routing message to an internal chat channel using a messaging transport such as Telegram. Implementations SHOULD avoid embedding secrets or large artifacts in the transport payload; include a minimal summary and the `reference_id` so the target can fetch the full item.
 
 Conceptual transport payload example:
 
-- chat_id: -1003989798620
-- text: "@andy — DELEGATE: task_source=email-triage reference_id=<id> context=<brief summary>"
+- chat_id: <internal-chat-id>
+- text: "DELEGATE: target=<target> task_source=<source> reference_id=<id> context=<brief summary>"
 
 Implementation guidance (non-normative):
 - The contract requires the error envelope to include a `retryable` boolean so callers can decide whether to retry.
-- Transport wiring (authentication, retry/backoff policies, logging, and alerting) is a runtime concern and should be implemented according to the host environment's operational practices. These concerns are intentionally out of scope for the delegate contract.
+- Transport wiring (authentication, retry/backoff policies, logging, and alerting) is a runtime concern and should be implemented according to the host environment's operational practices.
 
 
 ## Failure semantics
@@ -127,7 +127,7 @@ Implementation guidance (non-normative):
 - Implementations must not mark a delegation as dispatched unless the transport indicates success.
 
 
-## Examples — how email-triage should invoke delegate
+## Examples — invocation examples
 
 YAML example (conceptual):
 
@@ -135,9 +135,9 @@ YAML example (conceptual):
 - skill: delegate
   inputs:
     target: andy
-    task_source: email-triage
-    context: "From: recruiter@example.com; Subject: Senior Engineer; Deadline: 2026-04-20"
-    reference_id: "GMAIL_MSG_1234567890"
+    task_source: source-system
+    context: "Short summary: candidate message; Subject: Senior Engineer; Deadline: 2026-04-20"
+    reference_id: "artifact_123456"
 ```
 
 JSON example (programmatic):
@@ -147,9 +147,9 @@ JSON example (programmatic):
   "skill": "delegate",
   "inputs": {
     "target": "cooper",
-    "task_source": "email-triage",
+    "task_source": "external-system",
     "context": {"snippet": "Lab results attached, appointment 2026-04-21"},
-    "reference_id": "GMAIL_MSG_987654321"
+    "reference_id": "artifact_987654"
   }
 }
 ```
