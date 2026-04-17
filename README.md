@@ -7,6 +7,8 @@ A collection of skills for AI coding agents (GitHub Copilot, Hermes, and compati
 | Skill | Description |
 |---|---|
 | [stack-summary](./skills/stack-summary/) | Maintain living architecture docs: current stack snapshot, archive changelog, and scheduled tasks registry |
+| [delegate](./skills/delegate/) | General-purpose inter-agent delegation for Andy/Cooper |
+| [email-triage](./skills/email-triage/) | Gmail inbox sweep and targeted triage for MARS |
 
 ## Installing a skill
 
