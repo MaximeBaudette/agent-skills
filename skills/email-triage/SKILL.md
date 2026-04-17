@@ -126,6 +126,8 @@ Required dispatch shape:
 If dispatch succeeds:
 - Inbox message: archive and mark read
 - targeted non-Inbox message: keep its **current read state** and labels
+- Do not start Inbox mutation until after `agent-dispatch` returns `status="delivered"`.
+- After Inbox mutation, re-fetch or otherwise verify that `INBOX` was actually removed before reporting success.
 
 If **agent-dispatch failure** occurs:
 - leave the message untouched
@@ -149,6 +151,8 @@ Required dispatch shape:
 If dispatch succeeds:
 - Inbox message: archive and mark read
 - targeted non-Inbox message: keep its **current read state** and labels
+- Do not start Inbox mutation until after `agent-dispatch` returns `status="delivered"`.
+- After Inbox mutation, re-fetch or otherwise verify that `INBOX` was actually removed before reporting success.
 
 If **agent-dispatch failure** occurs:
 - leave the message untouched
