@@ -31,6 +31,8 @@ The `agent-dispatch` skill MUST accept these inputs:
 
 The `context` input is intentionally lightweight. It MAY be either a plain string summary or a small JSON object. Do not embed large artifacts — include a `reference_id` so the target agent can fetch the full item.
 
+Keep `context` aggressively short. Do not include score-by-score examples, long link lists, or copied message bodies.
+
 Recommended minimal object shape (informational, not required):
 
 - title (string): short human-facing title
@@ -124,11 +126,14 @@ Required runtime behavior:
    - `reference_id`
    - the provided `context`
    - a direct instruction to fetch the full artifact using `reference_id` when needed
+   - only the minimum summary needed to route the task; for `email-triage`, prefer wording like "Maxime replied with scoring feedback on the weekly job hunt email"
 4. Execute the handoff with Hermes CLI:
 
 ```bash
-hermes -p <profile> -q "<delegation prompt>"
+hermes chat -p <profile> -q "<delegation prompt>"
 ```
+
+Use a generous command timeout for Hermes profile queries. For `email-triage`, the minimum recommended timeout is 180 seconds.
 
 5. Treat the dispatch as successful **only if**:
    - the Hermes command exits with status `0`, and
@@ -145,6 +150,8 @@ context=<short summary or compact JSON>
 
 Fetch the full artifact using reference_id if needed, process it using your own workflow, and reply with a concise summary.
 ```
+
+For `email-triage`, keep `context` to one or two sentences and rely on `reference_id` for the full message. Do not include score-by-score examples, long link lists, or copied message bodies.
 
 Recommended success envelope for this runtime transport:
 

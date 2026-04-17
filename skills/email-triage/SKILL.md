@@ -47,6 +47,9 @@ Rules:
 - Search `in:inbox` only.
 - Include both **read and unread** mail.
 - Process the matching results as **individual Gmail messages**.
+- Skip self-authored mail from `maximes.butler@gmail.com`.
+- Skip messages carrying the `SENT` label.
+- Leave skipped self-authored/SENT messages untouched.
 - Do **not** use the old memory-based duplicate gate.
 - Inbox membership is the **source of truth** for whether a message should be seen again on future sweeps.
 
@@ -61,6 +64,7 @@ Rules:
 - `email_id` targets one Gmail message by message ID.
 - `query` matches **all messages**, including non-Inbox mail.
 - A targeted `query` still processes results as **individual Gmail messages**, never as threads.
+- A targeted `email_id` may explicitly inspect a self-authored/SENT message, but inbox sweep must not do so implicitly.
 
 ## Preconditions
 
