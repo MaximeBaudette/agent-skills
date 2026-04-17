@@ -1,8 +1,8 @@
 ---
 name: email-triage
-description: Inbox sweep and targeted Gmail triage for MARS with delegation, self-processing, and user escalation.
+description: Inbox sweep and targeted Gmail triage for MARS with agent dispatch, self-processing, and user escalation.
 homepage: https://github.com/MaximeBaudette/agent-skills
-required_skills: [google-workspace, delegate]
+required_skills: [google-workspace, agent-dispatch]
 ---
 
 # Email Triage
@@ -17,14 +17,14 @@ This skill classifies **individual Gmail messages** into exactly four outcomes:
 - `MARS-owned`
 - `unsure`
 
-The skill works at the **message level, not the thread level**. Every fetch, classification, delegation, follow-up action, and mutation decision is based on a Gmail **message ID**, not a thread ID.
+The skill works at the **message level, not the thread level**. Every fetch, classification, dispatch, follow-up action, and mutation decision is based on a Gmail **message ID**, not a thread ID.
 
-`health` and `career` are delegated through the reusable `delegate` skill.
+`health` and `career` are dispatched through the reusable `agent-dispatch` skill.
 `MARS-owned` is either handled by MARS directly or cleaned up if it is non-actionable.
-`unsure` is escalated to Maxime directly from this skill and must **not** be routed through `delegate`.
+`unsure` is escalated to Maxime directly from this skill and must **not** be routed through `agent-dispatch`.
 
-Direct alerting to Maxime is an internal `email-triage` behavior, not a `delegate` call.
-The MARS follow-up path is also internal to `email-triage`; it is a triage-owned execution path, not the external `delegate` skill.
+Direct alerting to Maxime is an internal `email-triage` behavior, not an `agent-dispatch` call.
+The MARS follow-up path is also internal to `email-triage`; it is a triage-owned execution path, not the external `agent-dispatch` skill.
 
 ## Modes
 
@@ -70,7 +70,7 @@ Before doing anything else, run a Google Workspace auth check.
 - If auth is not valid, **alert Maxime** and stop.
 - A pre-run auth failure causes **zero mutations** across the run.
 - Never attempt re-auth inside this skill.
-- This alert is sent by `email-triage` itself and does not use `delegate`.
+- This alert is sent by `email-triage` itself and does not use `agent-dispatch`.
 
 ## Run semantics
 
@@ -111,39 +111,49 @@ If parsing or classification is ambiguous, incomplete, or malformed, **parse/cla
 
 #### Outcome: `health`
 
-Invoke `delegate` with target `cooper`.
+Invoke `agent-dispatch` with target `cooper`.
 
-Required delegation shape:
+Required dispatch shape:
 - `target=cooper`
 - `task_source=email-triage`
 - `reference_id=<gmail_message_id>`
 - lightweight context containing enough summary for Cooper to decide whether to fetch the message
 
-If delegation succeeds:
+If dispatch succeeds:
 - Inbox message: archive and mark read
 - targeted non-Inbox message: keep its **current read state** and labels
 
-If **delegate failure** occurs:
+If **agent-dispatch failure** occurs:
 - leave the message untouched
 - continue with the remaining messages
 
+Dispatch success rule:
+- treat dispatch as successful **only** when `agent-dispatch` returns a machine-readable envelope with `status="delivered"`
+- if the envelope is missing, malformed, empty, or has any other status, treat it as **agent-dispatch failure**
+- do **not** report or summarize the message as dispatched unless that `status="delivered"` envelope was actually returned
+
 #### Outcome: `career`
 
-Invoke `delegate` with target `andy`.
+Invoke `agent-dispatch` with target `andy`.
 
-Required delegation shape:
+Required dispatch shape:
 - `target=andy`
 - `task_source=email-triage`
 - `reference_id=<gmail_message_id>`
 - lightweight context containing enough summary for Andy to decide whether to fetch the message
 
-If delegation succeeds:
+If dispatch succeeds:
 - Inbox message: archive and mark read
 - targeted non-Inbox message: keep its **current read state** and labels
 
-If **delegate failure** occurs:
+If **agent-dispatch failure** occurs:
 - leave the message untouched
 - continue with the remaining messages
+
+Dispatch success rule:
+- treat dispatch as successful **only** when `agent-dispatch` returns a machine-readable envelope with `status="delivered"`
+- if the envelope is missing, malformed, empty, or has any other status, treat it as **agent-dispatch failure**
+- do **not** report or summarize the message as dispatched unless that `status="delivered"` envelope was actually returned
 
 #### Outcome: `MARS-owned`
 
@@ -172,7 +182,7 @@ If **MARS follow-up failure** occurs:
 
 ##### Non-actionable `MARS-owned`
 
-A non-actionable `MARS-owned` message does not need delegation or a follow-up workflow.
+A non-actionable `MARS-owned` message does not need dispatch or a follow-up workflow.
 
 If it is still in Inbox:
 - mark read
@@ -184,7 +194,7 @@ If it is a targeted non-Inbox message:
 #### Outcome: `unsure`
 
 Message Maxime directly from triage.
-Do **not** use `delegate` for `unsure` mail.
+Do **not** use `agent-dispatch` for `unsure` mail.
 
 Direct escalation interface:
 
@@ -210,9 +220,9 @@ If **user-escalation failure** occurs:
 These rules are mandatory and explicit:
 
 - Inbox messages archive/read on successful handling.
-- Successful handling means: successful delegation, successful MARS follow-up, or successful classification as non-actionable `MARS-owned` while still in Inbox.
+- Successful handling means: successful dispatch, successful MARS follow-up, or successful classification as non-actionable `MARS-owned` while still in Inbox.
 - `unsure` is not successful handling; keep the message where it is so Maxime can review it.
-- targeted non-Inbox messages keep their **current read state** and labels on successful delegation.
+- targeted non-Inbox messages keep their **current read state** and labels on successful dispatch.
 - targeted non-Inbox messages keep their **current read state** and labels on successful MARS follow-up.
 - targeted non-Inbox, non-actionable `MARS-owned` messages keep their **current read state** and labels.
 - targeted non-Inbox `unsure` and failure cases do **not** move mail into Inbox.
@@ -225,7 +235,8 @@ These rules are mandatory and explicit:
 - Per-message fetch failure → leave that message untouched and continue.
 - Parse/classification failure → classify as `unsure`.
 - Invalid invocation (both selectors present) → stop immediately with no mutations.
-- Delegate failure → leave the message untouched.
+- Agent-dispatch failure → leave the message untouched.
+- Missing or malformed agent-dispatch success envelope → treat as agent-dispatch failure.
 - MARS follow-up failure → leave the message untouched.
 - User-escalation failure → leave the message untouched.
 - One message failing must not block successful handling of other messages in the same run.
