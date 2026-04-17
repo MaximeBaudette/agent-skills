@@ -2,6 +2,8 @@
 # gather_state.sh — Collect current agent host stack state (Hermes priority)
 # Output: structured text for use by an AI assistant
 # Usage: bash gather_state.sh
+#   Interactive runs without STACK_DIR setup hand off to setup_stack_dir.sh.
+#   Non-interactive runs fail until STACK_DIR setup is complete.
 #
 # Configuration (override via environment variables):
 #   HERMES_DIR    — path to hermes config dir     (default: ~/.hermes)
@@ -14,6 +16,8 @@ set -euo pipefail
 HERMES_DIR="${HERMES_DIR:-$HOME/.hermes}"
 AUX_DIR="${AUX_DIR:-$HOME/aux_services}"
 BIN_DIR="${BIN_DIR:-$HOME/bin}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/ensure_stack_dir.sh"
 STACK_DIR="${STACK_DIR:-$HOME/STACK}"
 
 echo "=== GATHER_STATE: Agent Host Stack (Hermes $(date -u +%Y-%m-%dT%H:%M:%SZ)) ==="
@@ -35,7 +39,7 @@ if command -v hermes >/dev/null 2>&1; then
   echo "skills:"
   hermes skills list 2>/dev/null || echo "skills list unavailable"
   echo "crons (default profile):"
-  hermes crons list 2>/dev/null || echo "crons list unavailable"
+  hermes cron list 2>/dev/null || echo "crons list unavailable"
   echo ""
 fi
 if command -v openclaw >/dev/null 2>&1; then
@@ -59,17 +63,17 @@ echo ""
 
 # --- Skills dirs ---
 echo "--- SKILLS_DIRS ---"
-ls "$HERMES_DIR/skills/" 2>/dev/null | tr '\\n' ' ' && echo "" || echo "no skills dir"
+ls "$HERMES_DIR/skills/" 2>/dev/null | tr '\n' ' ' && echo "" || echo "no skills dir"
 echo ""
 
 # --- Auxiliary services ---
 echo "--- AUX_SERVICES ---"
-ls "$AUX_DIR/" 2>/dev/null | tr '\\n' ' ' && echo ""
+ls "$AUX_DIR/" 2>/dev/null | tr '\n' ' ' && echo ""
 echo ""
 
 # --- Key binaries ---
 echo "--- BINARIES ---"
-ls "$BIN_DIR/" 2>/dev/null | head -10 | tr '\\n' ' ' && echo ""
+ls "$BIN_DIR/" 2>/dev/null | head -10 | tr '\n' ' ' && echo ""
 echo ""
 
 # --- Cron registry ---

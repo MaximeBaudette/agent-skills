@@ -15,9 +15,21 @@ Maintains a living architecture documentation directory at `~/STACK/` (configura
     └── YYYY-MM-DD_<slug>.md   ← one file per architectural change
 ```
 
+## Setup
+
+- `STACK_DIR` remains configurable and defaults to `~/STACK`.
+- Managed installs on this host use a first-run setup flow.
+- Run setup explicitly from the active skill directory:
+  ```bash
+  bash <stack-summary-skill-dir>/scripts/setup_stack_dir.sh
+  ```
+- Setup persists `STACK_DIR` in both `~/.config/environment.d/stack-dir.conf` and `~/.profile`.
+- Normal operations may hand off to setup when interactive if the host is not configured yet.
+- Non-interactive runs fail with a `setup required` message until the host is configured.
+
 ## Configuration
 
-Set `STACK_DIR` in your shell profile to change where the documentation lives (default: `~/STACK`).
+`STACK_DIR` can still be overridden in the shell environment or shell profile when needed, but the portable default remains `~/STACK`.
 
 ## Operations
 
@@ -28,6 +40,8 @@ Three operations, used in combination:
 3. **`archive-change`** — create a new dated entry in `STACK/Archive/`
 
 > When removing or replacing something, run `archive-change` **before** `update-stack` — preserve the old state first, then update the current view.
+
+> All operations resolve `STACK_DIR` through `scripts/ensure_stack_dir.sh` first. If the host is unconfigured, interactive runs may hand off to `scripts/setup_stack_dir.sh`; non-interactive runs stop with a setup-required message.
 
 ---
 
@@ -45,9 +59,11 @@ Three operations, used in combination:
    bash ~/.agents/skills/stack-summary/scripts/gather_state.sh
    ```
 
-2. Read the current `~/STACK/CURRENT.md` to understand the existing structure.
+2. If this is a first run on a managed install, complete setup with `scripts/setup_stack_dir.sh` before continuing.
 
-3. Update each section in `CURRENT.md` from the script output:
+3. Read the current `~/STACK/CURRENT.md` to understand the existing structure.
+
+4. Update each section in `CURRENT.md` from the script output:
    - **Runtime Stack** — node, python3, npm versions from `--- RUNTIME ---`
    - **Agent Framework** section — version, profiles/agents, providers from `--- HERMES ---` or `--- OPENCLAW ---`
    - **Memory Architecture** — verify services and endpoints are current
@@ -56,9 +72,9 @@ Three operations, used in combination:
    - **Ports & Networking** — update from `--- PORTS ---`
    - **Scheduled Tasks** — update from `--- CRONS ---`
 
-4. Update the `Last updated:` date at the top.
+5. Update the `Last updated:` date at the top.
 
-5. Commit:
+6. Commit:
    ```bash
    cd ~/STACK && git add CURRENT.md && git commit -m "docs: update stack snapshot YYYY-MM-DD"
    ```
@@ -118,11 +134,6 @@ Three operations, used in combination:
    - **Retired** — keep any previously documented retired/decommissioned entries
 
 7. Update the `Last updated:` date at the top.
-
-8. Commit:
-   ```bash
-   cd ~/STACK && git add CRONs.md && git commit -m "crons: sync scheduled tasks registry YYYY-MM-DD"
-   ```
 
 ---
 
@@ -195,12 +206,7 @@ Three operations, used in combination:
 
 3. Skip sections that don't apply (e.g., no "Removed" if this is a pure addition).
 
-4. Commit:
-   ```bash
-   cd ~/STACK && git add Archive/ && git commit -m "archive: YYYY-MM-DD <slug>"
-   ```
-
-5. Follow up with `update-stack` to update CURRENT.md.
+4. Follow up with `update-stack` to update CURRENT.md.
 
 ---
 
@@ -260,6 +266,8 @@ hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/s
 - Installed skills and extensions
 - Auxiliary services (`~/aux_services/`)
 - Local binaries (`~/bin/`)
+- `scripts/ensure_stack_dir.sh` — resolves `STACK_DIR`, hands off to setup in interactive shells, or fails non-interactively with a setup-required message
+- `scripts/setup_stack_dir.sh` — first-run setup and reconciliation for persisted `STACK_DIR` configuration
 
 Override paths via environment variables at the top of the script (`HERMES_DIR`, `OPENCLAW_DIR`, `AUX_DIR`, `BIN_DIR`).
-
+DIR`).
