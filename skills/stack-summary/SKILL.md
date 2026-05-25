@@ -1,47 +1,35 @@
 ---
 name: stack-summary
-description: "Maintain living stack documentation for an AI agent host. Use this skill whenever: updating STACK/CURRENT.md after infrastructure changes, creating archive entries for deprecated components, documenting a new service/skill/plugin being added or removed, syncing the cron/service registry, or when the user asks to 'update stack docs', 'document this change', 'archive this setup', 'sync cron docs', 'update CRONs.md', 'what's in the stack', or 'generate stack summary'. Also use this when you've just finished installing or removing any service, plugin, skill, tool, or cron and the user hasn't explicitly asked — proactively suggest documenting it."
+description: "Maintain living stack documentation in the Prime Radiant KB. Use this skill whenever: updating STACK/CURRENT after infrastructure changes, creating archive entries for deprecated components, documenting a new service/skill/plugin being added or removed, syncing the cron/service registry, or when the user asks to 'update stack docs', 'document this change', 'archive this setup', 'sync cron docs', 'update CRONs', 'what's in the stack', or 'generate stack summary'. Also use this when you've just finished installing or removing any service, plugin, skill, tool, or cron and the user hasn't explicitly asked — proactively suggest documenting it."
 ---
 
 # Stack Summary Skill
 
-Maintains a living architecture documentation directory at `~/STACK/` (configurable via `STACK_DIR`):
+Maintains living architecture documentation in the **Prime Radiant KB** (not the filesystem). The KB is the source of truth.
 
 ```
-~/STACK/
-├── CURRENT.md              ← current state snapshot (always up to date)
-├── CRONs.md                ← scheduled tasks registry (crons, systemd services)
-└── Archive/
-    └── YYYY-MM-DD_<slug>.md   ← one file per architectural change
+KB pages:
+  STACK/CURRENT                              ← current state snapshot (always up to date)
+  STACK/CRONs                                ← scheduled tasks registry (crons, systemd services)
+  STACK/Archive/YYYY-MM-DD_slug              ← one page per architectural change
+  articles/mars-host                         ← hardware specs, networking, backup (rarely changes)
 ```
-
-## Setup
-
-- `STACK_DIR` remains configurable and defaults to `~/STACK`.
-- Managed installs on this host use a first-run setup flow.
-- Run setup explicitly from the active skill directory:
-  ```bash
-  bash <stack-summary-skill-dir>/scripts/setup_stack_dir.sh
-  ```
-- Setup persists `STACK_DIR` in both `~/.config/environment.d/stack-dir.conf` and `~/.profile`.
-- Normal operations may hand off to setup when interactive if the host is not configured yet.
-- Non-interactive runs fail with a `setup required` message until the host is configured.
-
-## Configuration
-
-`STACK_DIR` can still be overridden in the shell environment or shell profile when needed, but the portable default remains `~/STACK`.
 
 ## Operations
 
 Three operations, used in combination:
 
-1. **`update-stack`** — regenerate `STACK/CURRENT.md` from current system state
-2. **`sync-crons`** — rewrite `STACK/CRONs.md` from live cron/service state
-3. **`archive-change`** — create a new dated entry in `STACK/Archive/`
+1. **`update-stack`** — regenerate `STACK/CURRENT` from live system state, commit to KB
+2. **`sync-crons`** — rewrite `STACK/CRONs` from live cron/service state, commit to KB
+3. **`archive-change`** — create a new `STACK/Archive/YYYY-MM-DD_slug` page in KB
 
 > When removing or replacing something, run `archive-change` **before** `update-stack` — preserve the old state first, then update the current view.
 
-> All operations resolve `STACK_DIR` through `scripts/ensure_stack_dir.sh` first. If the host is unconfigured, interactive runs may hand off to `scripts/setup_stack_dir.sh`; non-interactive runs stop with a setup-required message.
+### KB Tools Used
+- `mcp_prime_radiant_kb_get_page` — read existing KB page
+- `mcp_prime_radiant_kb_commit_page` — write final page (MARS only, re-indexes + git commits)
+- `mcp_prime_radiant_kb_list_pages` — list pages in a source (e.g., `STACK`)
+- `mcp_prime_radiant_kb_search` — search across KB
 
 ---
 
@@ -50,34 +38,61 @@ Three operations, used in combination:
 ### When to use
 - After installing or removing a service, plugin, skill, or tool
 - When any port, path, or config changes
-- When user asks "update stack docs" or "regenerate CURRENT.md"
+- When user asks "update stack docs" or "regenerate CURRENT"
 
 ### Steps
 
-1. Run the gather script to collect current system state:
-   ```bash
-   bash ~/.agents/skills/stack-summary/scripts/gather_state.sh
+1. **Read the existing KB page** to understand current structure:
+   ```
+   kb_get_page(slug="STACK/CURRENT")
    ```
 
-2. If this is a first run on a managed install, complete setup with `scripts/setup_stack_dir.sh` before continuing.
-
-3. Read the current `~/STACK/CURRENT.md` to understand the existing structure.
-
-4. Update each section in `CURRENT.md` from the script output:
-   - **Runtime Stack** — node, python3, npm versions from `--- RUNTIME ---`
-   - **Agent Framework** section — version, profiles/agents, providers from `--- HERMES ---` or `--- OPENCLAW ---`
-   - **Memory Architecture** — verify services and endpoints are current
-   - **Skills** — update from `--- SKILLS ---`
-   - **Auxiliary Services** — update from `--- AUX_SERVICES ---`
-   - **Ports & Networking** — update from `--- PORTS ---`
-   - **Scheduled Tasks** — update from `--- CRONS ---`
-
-5. Update the `Last updated:` date at the top.
-
-6. Commit:
+2. **Gather live system state** via terminal commands:
    ```bash
-   cd ~/STACK && git add CURRENT.md && git commit -m "docs: update stack snapshot YYYY-MM-DD"
+   # Runtime versions
+   node --version && python3 --version && npm --version
+
+   # Hermes version
+   hermes --version 2>/dev/null || echo "not found"
+
+   # Hermes profiles
+   ls ~/.hermes/profiles/ 2>/dev/null
+
+   # Active systemd user services
+   systemctl --user list-units --type=service --state=active --no-pager
+
+   # Listening ports
+   ss -tlnp 2>/dev/null
+
+   # Aux services
+   ls ~/aux_services/ 2>/dev/null
+
+   # Local binaries
+   ls ~/bin/ 2>/dev/null
+
+   # Skills directory listing (top-level categories)
+   ls -d ~/.hermes/skills/*/ 2>/dev/null
    ```
+
+3. **Update each section** in `STACK/CURRENT` from the gathered output:
+   - **Runtime** — node, python3, npm versions
+   - **Agent Framework** — Hermes version, profiles, any config notes
+   - **Services** — active systemd user services
+   - **Ports** — listening ports with process info
+   - **Aux Services** — entries in `~/aux_services/`
+   - **Binaries** — entries in `~/bin/`
+   - **Skills Dirs** — top-level skill categories
+   - **Recent Skill/Cron Changes** — update if anything changed since last update
+   - **Profile sections** — update per-profile details if changed (model routing, skills, crons)
+
+4. **Update the `Last updated:` date** at the top.
+
+5. **Commit to KB:**
+   ```
+   kb_commit_page(slug="STACK/CURRENT", content="<full markdown>")
+   ```
+
+> **Don't** update `articles/mars-host` as part of this operation — that page covers hardware/network specs that rarely change. Update it separately if hardware changes.
 
 ---
 
@@ -85,23 +100,22 @@ Three operations, used in combination:
 
 ### When to use
 - After adding or removing any cron job, systemd service, or scheduled task
-- When the user asks "sync cron docs", "update CRONs.md", or "document this cron"
-- After any agent framework cron change (Hermes or OpenClaw)
+- When the user asks "sync cron docs", "update CRONs", or "document this cron"
+- After any `cronjob` tool operation (create, update, remove)
 
 ### Steps
 
-1. **Detect installed agent frameworks:**
-   ```bash
-   which hermes 2>/dev/null && echo "hermes installed"
-   which openclaw 2>/dev/null && echo "openclaw installed"
+1. **Read the existing KB page:**
+   ```
+   kb_get_page(slug="STACK/CRONs")
    ```
 
-2. **Collect Hermes cron state** (if Hermes is installed):
+2. **Collect Hermes cron state** for all profiles:
    ```bash
    # Default profile (MARS)
    hermes cron list
 
-   # All additional profiles (one command per profile dir found)
+   # Each additional profile
    for profile in ~/.hermes/profiles/*/; do
      name=$(basename "$profile")
      echo "=== Profile: $name ==="
@@ -109,31 +123,26 @@ Three operations, used in combination:
    done
    ```
 
-3. **Collect OpenClaw cron state** (if OpenClaw is installed):
+3. **Collect system-level state:**
    ```bash
-   # Default agent
-   openclaw cron list
-
-   # All additional agents defined in openclaw.json
-   # (read agents.list from ~/.openclaw/openclaw.json and loop)
-   ```
-
-4. **Collect system-level state:**
-   ```bash
-   crontab -l
+   crontab -l 2>/dev/null
    systemctl --user list-units --type=service --state=active --no-pager
    ```
 
-5. Read current `~/STACK/CRONs.md` to see what's already documented.
+4. **Rewrite `STACK/CRONs`** with sections:
+   - **Hermes Cron Jobs (MARS/default)** — ID, Name, Schedule, Skills, Notes
+   - **Hermes Crons (career-manager/Andy)** — same columns
+   - **Hermes Crons (health-coach/Cooper)** — same columns
+   - **Systemd User Services (active)** — Service, Status
+   - **System Crons (crontab -l)** — Schedule, Script, Notes
+   - **Retired** — keep any previously documented retired entries
 
-6. Rewrite `~/STACK/CRONs.md` with sections based on what's installed:
-   - **Hermes Cron Jobs** (if Hermes installed) — one subsection per profile (default + each in `~/.hermes/profiles/`): ID, Name, Schedule, Skills, Notes
-   - **OpenClaw Cron Jobs** (if OpenClaw installed) — one subsection per agent: ID, Name, Schedule, Status, Notes
-   - **System Cron Jobs** — from `crontab -l`: Schedule, Script, Notes
-   - **Systemd User Services** — from `systemctl --user`: Service, Status, Notes
-   - **Retired** — keep any previously documented retired/decommissioned entries
+5. **Update the `Last updated:` date** at the top.
 
-7. Update the `Last updated:` date at the top.
+6. **Commit to KB:**
+   ```
+   kb_commit_page(slug="STACK/CRONs", content="<full markdown>")
+   ```
 
 ---
 
@@ -147,10 +156,10 @@ Three operations, used in combination:
 
 ### Steps
 
-1. Determine an archive slug: short, kebab-case, descriptive  
-   Examples: `memory-byterover-to-always-on-agent`, `add-composio-plugin`, `upgrade-openclaw-2026-04`
+1. **Determine an archive slug:** short, kebab-case, descriptive  
+   Examples: `memory-byterover-to-always-on-agent`, `add-composio-plugin`, `upgrade-hermes-2026-05`
 
-2. Create `~/STACK/Archive/YYYY-MM-DD_<slug>.md` using this template:
+2. **Create the KB page** at `STACK/Archive/YYYY-MM-DD_slug` using this template:
 
 ```markdown
 # YYYY-MM-DD — [Human-readable title]
@@ -204,70 +213,31 @@ Three operations, used in combination:
 | path | Keep/Delete | Why |
 ```
 
-3. Skip sections that don't apply (e.g., no "Removed" if this is a pure addition).
+3. **Skip sections that don't apply** (e.g., no "Removed" if this is a pure addition).
 
-4. Follow up with `update-stack` to update CURRENT.md.
+4. **Commit to KB:**
+   ```
+   kb_commit_page(slug="STACK/Archive/YYYY-MM-DD_slug", content="<full markdown>")
+   ```
+
+5. **Follow up with `update-stack`** to refresh `STACK/CURRENT`.
 
 ---
 
-## File Conventions
+## Conventions
 
-- **CURRENT.md** — present state only; no historical information
-- **Archive slugs** — `YYYY-MM-DD_kebab-case-description.md`
+- **CURRENT** — present state only; no historical information
+- **CRONs** — live registry, keep retired entries in a Retired section
+- **Archive slugs** — `YYYY-MM-DD_kebab-case-description`
 - **Change types:** `Infrastructure replacement`, `Addition`, `Removal`, `Configuration`, `Upgrade`, `Documentation`
-- **Commit messages:** `docs: update stack snapshot YYYY-MM-DD` / `archive: YYYY-MM-DD <slug>` / `crons: sync scheduled tasks registry YYYY-MM-DD`
 - **No secrets** — reference where a secret is stored, never the value itself
+- **KB commits are auto-versioned** — no need for manual git operations; `kb_commit_page` handles re-indexing and git commit
+- **Tables in KB pages** — markdown tables are fine in the KB (unlike Telegram); use them for structured data
 
 ---
 
-## Wiring into Agent Files
+## Cross-References
 
-After installing this skill, add references to it in your agent's instruction files so it gets invoked automatically.
-
-**In `TOOLS.md` (or equivalent):**
-```markdown
-## Stack Documentation (stack-summary skill)
-- **Skill:** `stack-summary` (loaded from `~/.agents/skills/stack-summary/`)
-- **Stack dir:** `~/STACK/CURRENT.md` — current architecture snapshot
-- **Cron registry:** `~/STACK/CRONs.md` — canonical scheduled tasks registry
-- **Archive:** `~/STACK/Archive/<YYYY-MM-DD>_<slug>.md` — one file per change
-- **update-stack** → regenerate CURRENT.md (trigger: "update stack docs", "refresh the stack")
-- **sync-crons** → rewrite CRONs.md (trigger: "sync cron docs", "document this cron")
-- **archive-change** → new Archive/ entry (trigger: "archive this change")
-- Always run sync-crons after adding or removing any cron, service, or scheduled task
-```
-
-**Install command (GitHub Copilot — `npx skills add` mirrors to `~/.agents/skills/`):**
-```bash
-npx skills add https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary -g -a github-copilot -y
-```
-
-> Use this to both install and update. The local `deploy-openclaw.sh` script is only for hot-reload during active development.
-
-**Install command (Hermes Agent — separate skill system, `~/.hermes/skills/`):**
-```bash
-hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary
-```
-
-**In `MEMORY.md` hard rules:**
-```markdown
-- **Stack docs:** update `~/STACK/CRONs.md` whenever adding/removing any cron/systemd job
-```
-
----
-
-## Script Reference
-
-`scripts/gather_state.sh` collects system state from:
-- Hermes version and config (`~/.hermes/config.yaml`) — profiles, providers (if installed)
-- OpenClaw version and config (`~/.openclaw/openclaw.json`) — agents, plugins, providers (if installed)
-- Active systemd user services
-- Listening ports (`ss -tlnp`)
-- Installed skills and extensions
-- Auxiliary services (`~/aux_services/`)
-- Local binaries (`~/bin/`)
-- `scripts/ensure_stack_dir.sh` — resolves `STACK_DIR`, hands off to setup in interactive shells, or fails non-interactively with a setup-required message
-- `scripts/setup_stack_dir.sh` — first-run setup and reconciliation for persisted `STACK_DIR` configuration
-
-Override paths via environment variables at the top of the script (`HERMES_DIR`, `OPENCLAW_DIR`, `AUX_DIR`, `BIN_DIR`).
-DIR`).
+- Hardware specs live in `articles/mars-host` — update separately when hardware changes
+- Docs toolchain context in `ops/docs-toolchain`
+- AGENTS.md at `~/.hermes/AGENTS.md` documents MARS's KB curator role
