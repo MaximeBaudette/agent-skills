@@ -27,7 +27,9 @@ This structure works well for:
 - Packages with several related documents (e.g. USCIS submissions with cover letter + multiple supporting letters)
 - Projects that evolve over time by adding new entrypoints
 
-## Setup — CORRESPONDANCE_ROOT
+## Setup
+
+### 1. Declare CORRESPONDANCE_ROOT
 
 Each profile must declare its own root. Add it to the profile's `.env` (recommended) or clearly document it in the profile's AGENTS.md.
 
@@ -52,7 +54,62 @@ mkdir -p "$CORRESPONDANCE_ROOT"
 
 Restart the gateway or start a fresh session after setting the variable.
 
-**Important:** Inside each `CORRESPONDANCE_ROOT`, create an `AGENTS.md` file (or similar) that documents local conventions for that profile's correspondance work. This is where you explain the `common/` pattern, naming preferences, etc.
+**Important:** Inside each `CORRESPONDANCE_ROOT`, create an `AGENTS.md` (or similar) file that documents local conventions for that profile's correspondance work (e.g. the `common/` pattern).
+
+### 2. Fetch Supporting Scripts (for full functionality)
+
+`hermes skills install` only pulls the core `SKILL.md`. The scripts that provide convenient scaffolding are **not** installed automatically.
+
+To get the full experience (`new-project.sh` and `compile.sh`), run these commands once per profile:
+
+```bash
+mkdir -p "$CORRESPONDANCE_ROOT/.scripts"
+curl -fsSL https://raw.githubusercontent.com/MaximeBaudette/agent-skills/main/skills/latex/scripts/new-project.sh \
+  -o "$CORRESPONDANCE_ROOT/.scripts/new-project.sh"
+curl -fsSL https://raw.githubusercontent.com/MaximeBaudette/agent-skills/main/skills/latex/scripts/compile.sh \
+  -o "$CORRESPONDANCE_ROOT/.scripts/compile.sh"
+curl -fsSL https://raw.githubusercontent.com/MaximeBaudette/agent-skills/main/skills/latex/scripts/setup.sh \
+  -o "$CORRESPONDANCE_ROOT/.scripts/setup.sh"
+
+chmod +x "$CORRESPONDANCE_ROOT/.scripts/"*.sh
+```
+
+You can then run them as:
+```bash
+bash "$CORRESPONDANCE_ROOT/.scripts/new-project.sh" "my-project"
+bash "$CORRESPONDANCE_ROOT/.scripts/compile.sh" "$CORRESPONDANCE_ROOT/my-project"
+```
+
+Alternatively, copy the scripts directly from the installed skill if you have them:
+```bash
+cp -r ~/.hermes/skills/latex/scripts/ "$CORRESPONDANCE_ROOT/.scripts/"
+```
+
+### 3. Install Tectonic (one time per host)
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-x86_64-unknown-linux-musl.tar.gz \
+  | tar xz -C ~/bin
+```
+
+Make sure `~/bin` is in PATH for the relevant profiles.
+
+## Quick Start — Compile a Single File (No Scripts Needed)
+
+If you just have a folder with one `.tex` file and want to compile it quickly:
+
+```bash
+cd /path/to/some-folder-with-latex
+mkdir -p output
+
+# One command — no scripts required
+tectonic --outdir output main.tex
+```
+
+The resulting PDF will be at `output/main.pdf`.
+
+This is the simplest possible path and works even if you have never set up `CORRESPONDANCE_ROOT` or fetched any scripts.
 
 ## Project Structure (Multi-Entrypoint by Default)
 
@@ -108,7 +165,9 @@ You can also create the structure manually following the layout above.
 
 ## Compiling
 
-### Recommended: Use the compile script
+For the absolute simplest case (one file, no project structure), see **Quick Start — Compile a Single File** above.
+
+### Recommended: Use the compile script (for proper projects)
 
 From inside the project directory or by passing the full path:
 
@@ -174,16 +233,6 @@ Use the `google-workspace` skill for:
 - Sending them by email
 
 The `latex-project.json` still supports the `upload` section for optional automation hints.
-
-## Installing Tectonic
-
-```bash
-curl --proto '=https' --tlsv1.2 -LsSf \
-  https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-x86_64-unknown-linux-musl.tar.gz \
-  | tar xz -C ~/bin
-```
-
-Ensure `~/bin` is in PATH for the relevant profiles.
 
 ## Best Practices
 
