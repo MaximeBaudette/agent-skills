@@ -1,0 +1,309 @@
+% Setting up the document class
+\documentclass[12pt,letterpaper]{article}
+\usepackage[utf8]{inputenc}
+
+% Including necessary packages
+\usepackage{geometry}
+\usepackage{titlesec}
+\usepackage{enumitem}
+\usepackage{xcolor}
+
+% Configuring page geometry
+\geometry{margin=1in}
+
+% Setting font
+\usepackage{times}
+
+% Other formatting packages
+\usepackage{setspace}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+
+% Avoiding package conflicts and ensuring compatibility
+\usepackage{parskip}
+\setlength{\parskip}{12pt}
+\setlength{\parindent}{0pt}
+
+% Customizing section titles
+\titleformat{\section}
+  {\normalfont\Huge\bfseries\centering}
+  {\thesection}
+  {0em}
+  {}
+
+% Customizing section titles
+\titleformat{\subsection}
+  {\normalfont\Large\bfseries}
+  {\thesection}
+  {0em}
+  {}
+
+% Defining custom colors
+\definecolor{titleblue}{RGB}{0, 51, 102}
+
+
+% Variables
+% Me
+\newcommand{\myFirstName}[0]{Maxime}
+\newcommand{\myLastName}[0]{Baudette}
+\newcommand{\myDOB}[0]{1989-05-26}
+\newcommand{\myAddress}[0]{%
+\myFirstName {} \myLastName\\
+968 45$^{th}$ St. APT. A\\
+Emeryville, CA 94608
+}
+
+%USCIS
+\newcommand{\USCISaddress}[0]{%
+U.S. Citizenship and Immigration Services\\
+Attn: NFB (Box 21281)\\
+2108 E. Elliot Rd.\\
+Tempe, AZ 85284-1806}
+\newcommand{\myEBcase}[0]{IOE0925999561}
+\newcommand{\myPriorityDate}[0]{2024-05-24}
+\newcommand{\AOS}[0]{I-485 Adjustment of Status}
+\newcommand{\EAD}[0]{I-765 Employment Authorization}
+\newcommand{\AP}[0]{I-131 Advance Parole}
+
+% Letter Subject Line
+\newcommand{\letterSubject}[1]{%
+\textbf{RE: #1} \\
+\textbf{Applicant: \myFirstName {} \myLastName} \\
+\textbf{Form I-140 Receipt Number: \myEBcase}}
+
+% Letter Signature:
+\newcommand{\letterSignature}[0]{%
+\vspace{0.5cm}
+Sincerely,\\
+\\
+\\
+\myFirstName {} \myLastName \\
+Date: October 25, 2025}
+
+% Top right information
+\newcommand{\toprightinfo}[1]{%
+\begin{flushright}
+  \textbf{Applicant Information} \\
+  \vspace{0.2cm}
+  \begin{tabular}{rr}
+    Last Name: & \myLastName \\
+    First Name: & \myFirstName \\
+    Date of Birth: & \myDOB \\
+  \end{tabular}
+  \vspace{0.5cm}
+  
+  \textbf{Petition Information} \\
+  \vspace{0.2cm}
+  \begin{tabular}{rr}
+    Type: & EB2 - NIW \\
+    Priority Date: & \myPriorityDate\\
+    I-140 Case: & \myEBcase \\
+  \end{tabular}
+  \vspace{0.5cm}
+  
+  \textbf{Submission Information} \\
+  \vspace{0.2cm}
+  \begin{tabular}{rr}
+    Type: & #1 \\
+  \end{tabular}
+\end{flushright}
+\vspace*{1.3cm}
+}
+
+\newcommand{\coversheet}[1]{%
+\begin{center}
+  \section*{\color{titleblue}COVER SHEET}
+  \section*{#1}
+\end{center}
+}
+
+% Defining document content
+\begin{document}
+% Remove page numbers
+\pagestyle{empty}
+
+% Content
+\toprightinfo{I-485, I-765, I-131 Concurrent Filing}
+\coversheet{Concurrent Filing Package}
+\normalsize Please find attached the following items:
+\subsection*{Form G-1145}
+\subsection*{Cover Letter}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+\input{cover_letter}
+
+% Content
+\toprightinfo{\AOS}
+\coversheet{Application for Adjustment of Status}
+\normalsize Please find attached the following items:
+\subsection*{Form G-1450}
+\subsection*{2 Photos}
+\subsection*{Form I-485}
+\subsection*{Statement of Intent}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+\input{letter_of_intent}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Government-Issued Identity\\ Document with Photograph}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Passport}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Birth Certificate}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Birth Certificate (Translated)}
+\subsection*{Certificate of Translation Accuracy}
+\subsection*{Birth Certificate (French)}
+
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Evidence of Inspection and Admission}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Latest I-94}
+\subsection*{Passport page with non-immigrant visa and admission stamp}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Documentation of Your\\ Immigrant Category}
+\normalsize Please find attached a copy of the following items:
+\subsection*{I-797C: Receipt Notice of Pending I-140}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Evidence of Continuously Maintaining\\ a Lawful Status Since Arrival\\ in the United States}
+\normalsize Please find attached a copy of the following items:
+\subsection*{I-94 Travel History}
+\subsection*{I-797: Approval Notice for H1B}
+\subsection*{Associated Approved LCA}
+\subsection*{All DS-2019 covering 2018 to 2023}
+\subsection*{All associated J1 visa stamps}
+\normalsize Additional notes:
+\begin{itemize}
+    \item H1B visa stamp and admission stamp are provided with ``Evidence of Inspection and Admission''
+\end{itemize}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Report of Immigration Medical\\ Examination and Vaccination Record}
+\normalsize Please find attached a copy of the following items:
+\subsection*{I-797C: Rejection Notice of initial filing package}
+\normalsize Please find attached the following items:
+\subsection*{Original Envelop from sealed copy of I-693 Medical Exam, as returned by USCIS}
+\subsection*{Opened I-693 Medical Exam}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Certified Police and Court Records of\\ Criminal Charges, Arrests, or Convictions}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Court Records from California}
+\subsection*{Court Records from Sweden}
+\subsection*{Court Records from France (Translated)}
+\subsection*{Certificate of Translation Accuracy}
+\subsection*{Court Records from France (French)}
+
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AOS}
+\coversheet{Documentation Regarding J-1\\ Nonimmigrant Exchange Visitor Status}
+\normalsize Please find attached a copy of the following items:
+\subsection*{I-797: Approval Notice for I-612\\ Waiver of the
+Foreign Residence Requirement}
+\normalsize Additional notes:
+\begin{itemize}
+    \item All DS-2019 and associated J1 visa stamps and admission stamps are provided with ``Evidence of Continuously Maintaining a Lawful Status Since Arrival in the United States''
+\end{itemize}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\EAD}
+\coversheet{Application for Employment Authorization}
+\normalsize Please find attached the following items:
+\subsection*{Form G-1450}
+\subsection*{2 Photos}
+\subsection*{Form I-765}
+
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\EAD}
+\coversheet{Government-issued Identity Document}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Passport}
+\subsection*{California Driving License}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+\textbf{ }
+
+\newpage
+% Content
+\toprightinfo{\AP}
+\coversheet{Application for Advance Parole}
+\normalsize Please find attached the following items:
+\subsection*{Form G-1450}
+\subsection*{2 Photos}
+\subsection*{Form I-131}
+\subsection*{Statement of Reason for Travel}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+\input{letter_of_reason_for_travel}
+
+\newpage
+% Content
+\toprightinfo{\AP}
+\coversheet{Government-issued Identity Document}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Passport}
+\subsection*{California Driving License}
+% Fill the rest of the page
+\vspace*{\fill}
+
+\newpage
+% Content
+\toprightinfo{\AP}
+\coversheet{Evidence of Reason for Travel}
+\normalsize Please find attached a copy of the following items:
+\subsection*{Medical Letter (Translated)}
+\subsection*{Certificate of Translation Accuracy}
+\subsection*{Medical Letter (French)}
+
+% Fill the rest of the page
+\vspace*{\fill}
+\end{document}

@@ -1,51 +1,57 @@
-# agent-skills
+# agent-skills (2026 Hermes revamp)
 
-A collection of skills for AI coding agents (GitHub Copilot, Hermes, and compatible agents).
+Modern, minimal collection of skills for the Hermes multi-agent setup on the mars homelab host (MARS + Andy career-manager + Cooper health-coach).
 
-## Skills
+Only skills that are actively maintained and relevant after the move from OpenClaw to Hermes are kept here.
 
-| Skill | Description |
-|---|---|
-| [stack-summary](./skills/stack-summary/) | Maintain living architecture docs: current stack snapshot, archive changelog, and scheduled tasks registry |
-| [agent-dispatch](./skills/agent-dispatch/) | General-purpose inter-agent dispatch for Andy/Cooper |
-| [email-triage](./skills/email-triage/) | Gmail inbox sweep and targeted triage for MARS |
+## Currently Maintained
 
-## Installing a skill
+| Skill | Purpose | Notes |
+|-------|---------|-------|
+| [email-triage](./skills/email-triage/) | Classifies mail from the shared inbox by topic and dispatches to Andy / Cooper (or keeps with MARS). Self-contained. | Invoked by the inbox polling cron (historically called heartbeat). Focus is classification + safe dispatch. |
+| [latex](./skills/latex/) | Formal document production. Supports projects with multiple entrypoints that share common files (preambles, constants, etc.). | Pure skill + improved scripts. Includes a ready-to-use multi-document example template. Per-profile `CORRESPONDANCE_ROOT`. |
 
-### For GitHub Copilot CLI (`-a github-copilot` → `~/.agents/skills/`)
+## Obsolete / Archived (do not use)
 
-```bash
-# Install all skills
-npx skills add https://github.com/MaximeBaudette/agent-skills -g -a github-copilot -y
+The following were tied to OpenClaw paths, the old `npx skills add` distribution, or have been superseded by Hermes native features:
 
-# Install a specific skill
-npx skills add https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary -g -a github-copilot -y
-```
+- `gemini-cli` — replaced by native `google-gemini-cli` provider + `delegation` tool + `autonomous-ai-agents/*` patterns.
+- `agent-review` — hard-coded to `~/.openclaw/...` layout.
+- `agent-dispatch` — logic absorbed into `email-triage`.
+- `stack-summary` — superseded by KB entities + curator + encyclopedist flows.
 
-### For Hermes Agent (`hermes skills` → `~/.hermes/skills/`)
+These remain in the tree only for historical reference. They will be moved to `archive/` in a future cleanup.
 
-```bash
-hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/skills/stack-summary
-```
-
-## Local development
+## Installation (Hermes)
 
 ```bash
-git clone git@github.com:MaximeBaudette/agent-skills.git
-cd agent-skills
+# One skill
+hermes skills install https://github.com/MaximeBaudette/agent-skills/tree/main/skills/email-triage
 
-# ONLY for hot-reload during active development — not a production deploy step
-bash deploy-openclaw.sh          # all skills
-bash deploy-openclaw.sh stack-summary  # specific skill
+# Or use the bulk importer (recommended for collections)
+python ~/.hermes/skills/autonomous-ai-agents/hermes-agent/scripts/bulk-import-skills.py \
+  https://github.com/MaximeBaudette/agent-skills main
 ```
 
-> **Note:** `npx skills add` already mirrors directly to `~/.agents/skills/`, so the deploy script is only needed when actively debugging and you need hot-reload without a GitHub push. Once tested: push to GitHub and update via `npx skills add`.
+After import, review with `hermes skills list` and enable on the relevant platforms/profiles.
 
-### Adding a skill
+## Development on mars
 
-1. Create `skills/<name>/SKILL.md` with YAML frontmatter (`name`, `description`) and operation docs
-2. Add scripts to `skills/<name>/scripts/` if needed
-3. Test locally with `bash deploy-openclaw.sh <name>` (hot-reload only)
-4. Push to GitHub: `git push origin main`
-5. Install/update: `npx skills add ... -g -a github-copilot -y`
-6. Add a row to the table above
+```bash
+# Hot-reload only (not for production)
+bash deploy.sh email-triage
+```
+
+The old `deploy-openclaw.sh` is dead.
+
+## Design Principles (post-OpenClaw)
+
+- Skills are self-contained where possible.
+- Dispatch between profiles prefers Hermes-native mechanisms (kanban, `delegate_task`, direct `hermes chat -p`).
+- Document production uses per-profile isolation + shared compiler (MCP when it makes sense).
+- The "heartbeat" concept for the shared personal inbox is explicitly supported and documented.
+- No hard-coded `~/.openclaw` or `~/.agents` paths remain in active skills.
+
+## License
+
+MIT

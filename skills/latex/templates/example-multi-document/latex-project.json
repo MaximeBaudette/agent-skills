@@ -1,0 +1,17 @@
+{
+  "name": "example-multi-document-project",
+  "entrypoints": [
+    {
+      "file": "cover-letter.tex",
+      "label": "Cover Letter"
+    },
+    {
+      "file": "motivation-letter.tex",
+      "label": "Motivation Letter"
+    }
+  ],
+  "upload": {
+    "gdrive_folder_id": null,
+    "email": null
+  }
+}

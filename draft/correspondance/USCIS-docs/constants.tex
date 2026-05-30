@@ -1,0 +1,75 @@
+% =============================================================================
+% CONSTANTS.TEX - Shared variables across all USCIS documents
+% =============================================================================
+% This file contains variables used across multiple letters/documents.
+% Keep local definitions in individual files for document-specific shortcuts.
+% =============================================================================
+
+% ---------- PERSONAL INFO ----------
+\newcommand{\myFirstName}{Maxime}
+\newcommand{\myLastName}{Baudette}
+\newcommand{\myFullName}{\myFirstName\ \myLastName}
+
+% Date of birth
+\newcommand{\myDOBraw}{1989-05-26}
+\newcommand{\myDOB}{May 26, 1989}
+
+% Address
+\newcommand{\myStreet}{968 45$^{th}$ St. APT. A}
+\newcommand{\myCity}{Emeryville}
+\newcommand{\myState}{CA}
+\newcommand{\myZip}{94608}
+\newcommand{\myAddress}{\myFullName\\ \myStreet\\ \myCity, \myState\ \myZip}
+
+% Contact
+\newcommand{\myEmail}{maxime.baudette@gmail.com}
+\newcommand{\myPhone}{415-936-3059}
+
+% ---------- IMMIGRATION CASES ----------
+% Receipt numbers
+\newcommand{\myEBcase}{IOE0925999561}         % I-140 EB-2 NIW
+\newcommand{\myAOScase}{IOE0934414558}        % I-485 Adjustment of Status
+\newcommand{\myEADcase}{IOE0934414559}        % I-765 Employment Authorization
+\newcommand{\myAPcase}{IOE0934414560}         % I-131 Advance Parole
+
+% Priority date
+\newcommand{\myPriorityDate}{May 24, 2024}
+
+% Form names
+\newcommand{\FormI}{I-140 Immigrant Petition}
+\newcommand{\FormAOS}{I-485 Adjustment of Status}
+\newcommand{\FormEAD}{I-765 Employment Authorization}
+\newcommand{\FormAP}{I-131 Advance Parole}
+
+% Aliases
+\newcommand{\AOS}{\FormAOS}
+\newcommand{\EAD}{\FormEAD}
+\newcommand{\AP}{\FormAP}
+
+% Classification
+\newcommand{\EBclass}{EB-2 National Interest Waiver}
+
+% ---------- EMPLOYMENT ----------
+\newcommand{\myEmployer}{Lawrence Berkeley National Laboratory}
+\newcommand{\myJobTitle}{Energy Technology Researcher II}
+
+% ---------- DATES ----------
+\newcommand{\myLastEntryDate}{May 18, 2025}
+\newcommand{\myLayoffDateRaw}{2025-09-30}
+\newcommand{\myLayoffDate}{September 30, 2025}
+
+% ---------- PERSONAL DETAILS ----------
+\newcommand{\myNationality}{French}
+\newcommand{\myCountryOfBirth}{France}
+\newcommand{\myFamilyCountry}{France}
+\newcommand{\myGrandmaAgeNow}{93}
+
+% ---------- USCIS ----------
+\newcommand{\USCIS}{U.S. Citizenship and Immigration Services}
+
+% ---------- LETTER SHORTCUTS ----------
+% Subject line template
+\newcommand{\letterSubject}[1]{\textbf{RE: #1}\\ \textbf{Applicant: \myFullName}\\ \textbf{Form I-140 Receipt Number: \myEBcase}}
+
+% Signature
+\newcommand{\letterSignature}{\vspace{0.5cm} Sincerely,\\ \myFullName}

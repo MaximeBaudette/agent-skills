@@ -1,57 +1,88 @@
 ---
 name: latex
-description: Compile LaTeX documents using the Tectonic engine. Use this skill whenever the user wants to create, edit, or compile a LaTeX document — letters, articles, CVs, reports. Tectonic is a self-contained compiler that auto-downloads only the packages it needs.
+description: "Manage and compile LaTeX projects under per-profile CORRESPONDANCE_ROOT. Projects support multiple independent entrypoints that share common files (preambles, constants, letterhead, etc.)."
+version: 4.0.0
+author: MARS (revamped 2026)
+license: MIT
+platforms: [linux, macos]
 metadata:
-  { "openclaw": { "emoji": "📄", "os": ["linux", "darwin"] } }
+  hermes:
+    tags: [latex, documents, correspondance, pdf, tectonic]
 ---
 
-# LaTeX Skill (via Tectonic)
+# LaTeX Document Production
 
-## Key facts
+This skill lets agents create and compile professional LaTeX documents while respecting per-profile isolation via `CORRESPONDANCE_ROOT`.
 
-- **Compiler:** [Tectonic](https://tectonic-typesetting.github.io/) — single binary, auto-downloads packages on first compile, no full TeX Live needed
-- **Projects live in:** `~/.openclaw/agent_mars/correspondance/<project-name>/`
-- **Output always goes to:** `<project-dir>/output/<name>.pdf`
-- **Multi-file works:** tectonic resolves `\input{}` relative to where you run it from
+## Core Model
 
----
+- Every profile has its own `CORRESPONDANCE_ROOT` (see Setup below).
+- A **project** is a folder inside the correspondance root.
+- Projects are designed from the start to support **multiple compilable documents** (entrypoints) that can share common files.
+- Common / shared files go in `common/` by convention (documented per correspondance root — see AGENTS.md guidance).
+- Entry points are listed in `latex-project.json`.
 
-## Setup (first time — or if compile fails with "tectonic not found")
+This structure works well for:
+- Single letters or CVs
+- Packages with several related documents (e.g. USCIS submissions with cover letter + multiple supporting letters)
+- Projects that evolve over time by adding new entrypoints
 
-**Step 1: Check if tectonic is already available**
+## Setup — CORRESPONDANCE_ROOT
+
+Each profile must declare its own root. Add it to the profile's `.env` (recommended) or clearly document it in the profile's AGENTS.md.
+
+**Standard values:**
+
 ```bash
-command -v tectonic || ls $HOME/bin/tectonic 2>/dev/null || echo "NOT FOUND"
+# Andy
+CORRESPONDANCE_ROOT=/home/mars/.hermes/profiles/career-manager/workspace/correspondance
+
+# Cooper
+CORRESPONDANCE_ROOT=/home/mars/.hermes/profiles/health-coach/workspace/correspondance
+
+# MARS
+CORRESPONDANCE_ROOT=/home/mars/.hermes/workspace/correspondance
 ```
 
-**Step 2: If not found, install it**
+Create the directory if it doesn't exist:
+
 ```bash
-bash ~/.agents/skills/latex/scripts/setup.sh
-```
-This downloads the tectonic binary from GitHub releases into `~/bin/`. Only needed once per machine.
-
-**Step 3: Confirm**
-```bash
-$(command -v tectonic || echo $HOME/bin/tectonic) --version
-```
-Expected output: `tectonic X.Y.Z`
-
----
-
-## Task 1 — Create a new project
-
-Do these steps in order. No exploration needed.
-
-**Step 1:** Create the directory structure
-```bash
-mkdir -p /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output
+mkdir -p "$CORRESPONDANCE_ROOT"
 ```
 
-**Step 2:** Create `/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/latex-project.json`
+Restart the gateway or start a fresh session after setting the variable.
+
+**Important:** Inside each `CORRESPONDANCE_ROOT`, create an `AGENTS.md` file (or similar) that documents local conventions for that profile's correspondance work. This is where you explain the `common/` pattern, naming preferences, etc.
+
+## Project Structure (Multi-Entrypoint by Default)
+
+A typical project looks like this:
+
+```
+<project-name>/
+├── latex-project.json
+├── common/                    # Shared files (preambles, constants, letterhead, macros, etc.)
+│   ├── constants.tex
+│   └── letterhead.tex
+├── cover-letter.tex           # Entrypoint
+├── letter-of-intent.tex       # Entrypoint
+├── expedite-request.tex       # Entrypoint
+├── .gitignore
+└── output/
+    ├── cover-letter.pdf
+    ├── letter-of-intent.pdf
+    └── expedite-request.pdf
+```
+
+### latex-project.json
+
 ```json
 {
-  "name": "PROJECT_NAME",
+  "name": "2026-05-USCIS-AOS",
   "entrypoints": [
-    { "file": "main.tex", "label": "Main document" }
+    { "file": "cover-letter.tex", "label": "Cover Letter" },
+    { "file": "letter-of-intent.tex", "label": "Letter of Intent" },
+    { "file": "expedite-request.tex", "label": "Expedite Request" }
   ],
   "upload": {
     "gdrive_folder_id": null,
@@ -60,71 +91,122 @@ mkdir -p /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output
 }
 ```
 
-**Step 3:** Create `/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/main.tex` with the document content.
+- `entrypoints` lists every document that should produce its own PDF.
+- The skill and scripts use this list to know what can be compiled.
 
-**Step 4:** Create `/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/.gitignore`
-```
-output/
-```
+## Creating a New Project
 
----
+Use the convenience script (recommended for consistency):
 
-## Task 2 — Compile a project
-
-**One command — run from the project directory:**
 ```bash
-TECTONIC=$(command -v tectonic || echo $HOME/bin/tectonic) && cd /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME && mkdir -p output && $TECTONIC --outdir output main.tex
+bash ~/.hermes/skills/latex/scripts/new-project.sh "2026-05-motivation-letter-acme"
 ```
 
-Replace `main.tex` with the actual entrypoint filename if different.
+This creates a project already structured for multiple entrypoints + a `common/` directory.
 
-**Output PDF will be at:**
-```
-/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output/main.pdf
-```
+You can also create the structure manually following the layout above.
 
-For multi-entrypoint projects, check `latex-project.json` to see the list of `.tex` files, then compile each one the same way.
+## Compiling
 
----
+### Recommended: Use the compile script
 
-## Task 3 — Upload / share the PDF
+From inside the project directory or by passing the full path:
 
-### Upload to Google Drive
 ```bash
-/home/mars/bin/gws drive upload /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output/main.pdf --parent FOLDER_ID
+# Compile EVERY entrypoint listed in latex-project.json
+bash ~/.hermes/skills/latex/scripts/compile.sh /path/to/project
+
+# Compile only one specific document
+bash ~/.hermes/skills/latex/scripts/compile.sh /path/to/project cover-letter.tex
 ```
-To find a Drive folder ID: `~/bin/gws drive list --type folder`
 
-### Send by email (as attachment)
-Use the gws-gmail skill. The PDF is at:
-`/home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME/output/main.pdf`
+The script will:
+- Compile the requested entrypoint(s)
+- Place PDFs in `output/` named after the `.tex` file (e.g. `cover-letter.pdf`)
+- Respect the project root so `\input` and `\include` resolve correctly
 
-### Auto-upload on compile
-Set `gdrive_folder_id` or `email` in `latex-project.json`. Then run:
+### Direct tectonic usage (robust & transparent)
+
+You can (and often should) compile directly:
+
 ```bash
-bash /home/mars/.agents/skills/latex/scripts/compile.sh /home/mars/.openclaw/agent_mars/correspondance/PROJECT_NAME
+cd "$CORRESPONDANCE_ROOT/my-project"
+mkdir -p output
+
+# Compile one document
+tectonic --outdir output cover-letter.tex
+
+# Compile another
+tectonic --outdir output letter-of-intent.tex
 ```
-The compile script handles auto-upload when those fields are set.
 
----
+This is the most reliable method. The scripts are conveniences on top of this.
 
-## Templates
+**Always run tectonic from the project root.**
 
-Before writing a document from scratch, check if `/home/mars/.openclaw/agent_mars/correspondance/templates/` exists. If it does, look for a suitable template there and copy it into the new project directory.
+## Discovering Entry points
 
----
+When working on an existing project:
+1. Read `latex-project.json`
+2. Look at the `entrypoints` array — these are the documents you can (and usually should) compile separately.
 
-## Compile errors
+The skill instructions should make agents check this file first when asked to compile or update documents in a project.
 
-Tectonic prints errors with file name and line number. Read the output carefully — it is usually a missing `\end{}`, typo in a package name, or encoding issue. Fix the `.tex` file and re-run the compile command.
+## Shared Files Convention (`common/`)
 
----
+Place files that are meant to be `\input` or `\include` (but never compiled alone) in a `common/` directory at the project root.
 
-## Troubleshooting
+Example usage in an entrypoint:
 
-| Problem | Fix |
-|---|---|
-| `tectonic: command not found` | Run setup: `bash ~/.agents/skills/latex/scripts/setup.sh` |
-| `cannot find file X.tex` | Make sure you `cd` into the project dir before running tectonic |
-| Packages downloading slowly | Normal on first compile — tectonic auto-downloads only what's needed |
-| `\input{file}` not found | Run tectonic from the project root (the `cd` command above handles this) |
+```latex
+\input{common/constants}
+\input{common/letterhead}
+```
+
+**This is a recommended convention**, not enforced by the compiler. Document the exact pattern used in a given correspondance root inside an `AGENTS.md` file at the root of that profile's `CORRESPONDANCE_ROOT`. This gives flexibility across different projects and profiles.
+
+## Upload & Delivery
+
+After successful compilation, PDFs live in `output/`.
+
+Use the `google-workspace` skill for:
+- Uploading specific PDFs to Drive
+- Sending them by email
+
+The `latex-project.json` still supports the `upload` section for optional automation hints.
+
+## Installing Tectonic
+
+```bash
+curl --proto '=https' --tlsv1.2 -LsSf \
+  https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%400.15.0/tectonic-x86_64-unknown-linux-musl.tar.gz \
+  | tar xz -C ~/bin
+```
+
+Ensure `~/bin` is in PATH for the relevant profiles.
+
+## Best Practices
+
+- Default to multi-entrypoint projects from the beginning (easier to grow).
+- Keep shared logic in `common/`.
+- Name entrypoint files clearly (they determine the PDF names).
+- Always compile from the project root.
+- Use the scripts for scaffolding and bulk work; fall back to direct `tectonic` when you need precision or debugging.
+- Document profile-specific conventions in an `AGENTS.md` at the correspondance root level.
+
+## Notes
+
+- Output is always git-ignored (`output/` in `.gitignore`).
+- The skill is intentionally a mix of clear conventions + helpful scripts on top of the excellent direct `tectonic` experience.
+
+This model supports both simple single documents and complex multi-document packages while keeping everything isolated per profile.
+
+## Shared Templates & Examples
+
+A ready-to-use multi-document example lives here:
+
+`skills/latex/templates/example-multi-document/`
+
+It contains two entrypoints (`cover-letter.tex` and `motivation-letter.tex`) that share files from `common/`.
+
+Copy the folder into a real `CORRESPONDANCE_ROOT`, rename it, and start editing. This is the recommended starting point for most new projects.

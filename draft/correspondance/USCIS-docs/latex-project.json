@@ -1,0 +1,12 @@
+{
+  "name": "USCIS-docs",
+  "entrypoints": [
+    { "file": "letter_date_update.tex", "label": "Date Update Letter" },
+    { "file": "letter_expedite_request.tex", "label": "Expedite Request" },
+    { "file": "AOS package/main.tex", "label": "AOS Package (Full)" }
+  ],
+  "upload": {
+    "gdrive_folder_id": null,
+    "email": null
+  }
+}

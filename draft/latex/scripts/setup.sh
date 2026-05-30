@@ -5,8 +5,6 @@
 # only the packages it needs on first compile.
 #
 # Usage: bash setup.sh
-#
-# After installation, make sure ~/bin is in PATH for the relevant profiles.
 
 set -euo pipefail
 
@@ -65,6 +63,6 @@ echo "✓ tectonic installed at $TECTONIC_BIN"
 "$TECTONIC_BIN" --version
 
 echo ""
-echo "Make sure $BIN_DIR is in your PATH for the profiles that need it."
-echo "You can add this to the profile's .env or to ~/.bashrc:"
+echo "Make sure $BIN_DIR is in your PATH."
+echo "Add to ~/.bashrc or ~/.profile if needed:"
 echo '  export PATH="$HOME/bin:$PATH"'
