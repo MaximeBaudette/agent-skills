@@ -1,6 +1,6 @@
 ---
 name: latex
-description: "Manage and compile LaTeX projects under per-profile CORRESPONDANCE_ROOT. Projects support multiple independent entrypoints that share common files (preambles, constants, letterhead, etc.)."
+description: "Create and compile LaTeX documents. Supports both organized projects under a CORRESPONDANCE_ROOT (recommended for remote agents) and ad-hoc projects located anywhere on disk (common on personal development machines)."
 version: 4.0.0
 author: MARS (revamped 2026)
 license: MIT
@@ -12,15 +12,30 @@ metadata:
 
 # LaTeX Document Production
 
-This skill lets agents create and compile professional LaTeX documents while respecting per-profile isolation via `CORRESPONDANCE_ROOT`.
+This skill helps agents create and compile LaTeX documents.
+
+It is designed to work well in two different environments:
+
+- **On remote agents** (MARS, Andy, Cooper): Use the structured `CORRESPONDANCE_ROOT` model for organized, centralized document work.
+- **On personal development machines** (like this one): Work with LaTeX projects that live anywhere on disk. The structured root is optional.
 
 ## Core Model
 
-- Every profile has its own `CORRESPONDANCE_ROOT` (see Setup below).
-- A **project** is a folder inside the correspondance root.
-- Projects are designed from the start to support **multiple compilable documents** (entrypoints) that can share common files.
-- Common / shared files go in `common/` by convention (documented per correspondance root — see AGENTS.md guidance).
-- Entry points are listed in `latex-project.json`.
+The skill supports two main ways of working:
+
+### Organized Mode (Recommended for remote agents)
+- Use a dedicated `CORRESPONDANCE_ROOT` per profile.
+- All serious correspondance work lives under this root.
+- Projects inside it can contain multiple entrypoints that share files from a `common/` directory.
+
+### Ad-hoc / Development Mode (Common on personal machines)
+- Projects can live anywhere on the filesystem.
+- You can still use `latex-project.json` + multiple entrypoints + a `common/` folder inside any project.
+- No central root is required.
+
+In both modes, projects can support **multiple compilable documents** (entrypoints) that share common files (preambles, constants, letterhead, etc.).
+
+Entry points are declared in `latex-project.json`.
 
 This structure works well for:
 - Single letters or CVs
@@ -29,11 +44,15 @@ This structure works well for:
 
 ## Setup
 
-### 1. Declare CORRESPONDANCE_ROOT
+### 1. (Optional but recommended) Declare CORRESPONDANCE_ROOT
 
-Each profile must declare its own root. Add it to the profile's `.env` (recommended) or clearly document it in the profile's AGENTS.md.
+On remote agents (MARS, Andy, Cooper), it is strongly recommended to have a dedicated `CORRESPONDANCE_ROOT` per profile for organized document work.
 
-**Standard values:**
+On personal development machines, you can skip this entirely and work with projects located anywhere. The rest of the skill still works.
+
+If you do want to use a central root, add it to the profile's `.env` (recommended) or document it in the profile's AGENTS.md.
+
+**Standard values** (only needed if you decide to use a central root):
 
 ```bash
 # Andy
@@ -46,15 +65,15 @@ CORRESPONDANCE_ROOT=/home/mars/.hermes/profiles/health-coach/workspace/correspon
 CORRESPONDANCE_ROOT=/home/mars/.hermes/workspace/correspondance
 ```
 
-Create the directory if it doesn't exist:
+If you set one, create the directory:
 
 ```bash
 mkdir -p "$CORRESPONDANCE_ROOT"
 ```
 
-Restart the gateway or start a fresh session after setting the variable.
+Then restart the gateway or start a fresh session.
 
-**Important:** Inside each `CORRESPONDANCE_ROOT`, create an `AGENTS.md` (or similar) file that documents local conventions for that profile's correspondance work (e.g. the `common/` pattern).
+**Tip for this machine:** Since you have LaTeX projects scattered across many locations, you probably don't need (and shouldn't force) a single `CORRESPONDANCE_ROOT` here. The structured root model is mainly useful on the remote agents.
 
 ### 2. Fetch Supporting Scripts (for full functionality)
 
@@ -153,15 +172,24 @@ A typical project looks like this:
 
 ## Creating a New Project
 
-Use the convenience script (recommended for consistency):
+You can create a new project anywhere (no need for `CORRESPONDANCE_ROOT`).
+
+Use the convenience script:
 
 ```bash
-bash ~/.hermes/skills/latex/scripts/new-project.sh "2026-05-motivation-letter-acme"
+bash ~/.hermes/skills/latex/scripts/new-project.sh "2026-05-motivation-letter-acme" /path/to/parent/folder
+```
+
+Or simply run it from inside the directory where you want the project:
+
+```bash
+cd /some/arbitrary/location
+bash ~/.hermes/skills/latex/scripts/new-project.sh "my-project"
 ```
 
 This creates a project already structured for multiple entrypoints + a `common/` directory.
 
-You can also create the structure manually following the layout above.
+You can also create the structure manually.
 
 ## Compiling
 
@@ -236,12 +264,14 @@ The `latex-project.json` still supports the `upload` section for optional automa
 
 ## Best Practices
 
-- Default to multi-entrypoint projects from the beginning (easier to grow).
-- Keep shared logic in `common/`.
-- Name entrypoint files clearly (they determine the PDF names).
-- Always compile from the project root.
-- Use the scripts for scaffolding and bulk work; fall back to direct `tectonic` when you need precision or debugging.
-- Document profile-specific conventions in an `AGENTS.md` at the correspondance root level.
+- On personal machines, feel free to keep LaTeX projects wherever they naturally live. The skill works fine without a central root.
+- On remote agents, use `CORRESPONDANCE_ROOT` for better organization.
+- Default to multi-entrypoint projects when documents share content (easier to grow).
+- Keep shared logic in a `common/` folder inside the project.
+- Name entrypoint files clearly (they determine the PDF output names).
+- Always run Tectonic from inside the project directory.
+- Use the scripts for convenience, but direct `tectonic` commands are perfectly valid and often simpler.
+- If you do use a `CORRESPONDANCE_ROOT`, document local conventions in an `AGENTS.md` inside it.
 
 ## Notes
 
@@ -258,4 +288,4 @@ A ready-to-use multi-document example lives here:
 
 It contains two entrypoints (`cover-letter.tex` and `motivation-letter.tex`) that share files from `common/`.
 
-Copy the folder into a real `CORRESPONDANCE_ROOT`, rename it, and start editing. This is the recommended starting point for most new projects.
+Copy the folder into any location (inside a `CORRESPONDANCE_ROOT` or anywhere else), rename it, and start editing. This is a good starting point for both organized and ad-hoc projects.
