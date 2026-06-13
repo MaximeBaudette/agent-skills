@@ -3,7 +3,7 @@
 **Skill:** `career_job-seeking`
 **Version:** 1.1 (post two-registry split)
 
-**Current architecture (authoritative):** See the DATA FLOW diagram and mission specs in `SKILL.md` + the individual `mission_*.md` files. Interviews are stored **inline** as an `interviews: [...]` array on entries inside `job_leads.json`. Ingestion handoff from Job Hunt is `memory/handoffs/job_hunt_flagged.json`.
+**Current architecture (authoritative):** See the DATA FLOW diagram and mission specs in `SKILL.md` + the individual `mission_*.md` files. Interviews are stored **inline** as an `interviews: [...]` array on entries inside `job_leads.json`. The ingestion handoff bridge between Job Hunt and Lead Tracking uses two files: `memory/handoffs/job_hunt_flagged_pending.json` (Phase 4 audit snapshot, read by Lead Tracking Phase 1 — see references/handoff-pending-contract.md for the actual schema) and `memory/handoffs/job_hunt_flagged.json` (Phase 6 post-reply output, documented below as Handoff File 1).
 
 This document is **partially legacy**. It is retained for audit/historical reference but the live procedures and schemas in the active mission files + SKILL.md + `references/cross-file-consistency.md` take precedence. 
 
@@ -31,7 +31,7 @@ Interview Coach  ──reads from job_leads──▸  per-lead prep docs + debri
 ```
 
 **Key current contracts (post andy-improvement-plan two-registry migration):**
-- Primary ingestion handoff: `memory/handoffs/job_hunt_flagged.json` (from Job Hunt reply processing → Lead Tracking Phase 1).
+- Primary ingestion handoff: `memory/handoffs/job_hunt_flagged_pending.json` (Phase 4 audit snapshot → Lead Tracking Phase 1). See references/handoff-pending-contract.md for actual schema.
 - Active pursuits + interview details live in `job_leads.json` (interviews stored inline as array on the lead object; no separate handoff file for new interviews).
 - Lead Tracking Phase 5 now embeds `interviews` directly into the matching `job_leads.json` entry when status moves to `interview_scheduled`.
 - Interview Coach reads the `interviews` array from the relevant lead(s) in `job_leads.json` (status==interview_scheduled and interviews present).
@@ -44,10 +44,10 @@ Legacy `lead_to_interview.json` and old `application_pipeline.json` are no longe
 
 ---
 
-## Handoff File 1: job_hunt_flagged.json
+## Handoff File 1: job_hunt_flagged.json (Phase 6 post-reply)
 
-**Written by:** Job Hunt Phase 6 (reply processing)
-**Read by:** Lead Tracking Phase 1
+**Written by:** Job Hunt Phase 6 (reply processing — after Maxime scores entries)
+**Read by:** Lead Tracking Phase 1 (future — currently Phase 1 reads `job_hunt_flagged_pending.json` per references/handoff-pending-contract.md)
 
 **Path:** `memory/handoffs/job_hunt_flagged.json`
 

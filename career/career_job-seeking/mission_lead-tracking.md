@@ -24,7 +24,7 @@ After loading, re-read the Startup Check and Procedure. The spec here is the law
 ## Procedure:
 
 1. Phase 0 (High-Score Reminder): Scan job_registry.json for maxime_score>=4, status==active, last_verified_date>7d ago. Send Telegram reminder for each.
-2. Phase 1 (Ingest): Load memory/handoffs/job_hunt_flagged.json. Add ingested==false entries (maxime_score>=1) to job_leads.json, status=preparing. Mark ingested=true.
+2. Phase 1 (Ingest): Load memory/handoffs/job_hunt_flagged_pending.json (see references/handoff-pending-contract.md for actual schema). For entries where Maxime has assigned maxime_score >= 1 (via reply processing or direct scoring), add to job_leads.json with status=preparing. Remove ingested entries from the pending file. Skip if no pending file exists or no entries have scores.
 3. Phase 2 (Pipeline Update): Compute days_since_last_action for all non-terminal entries. Flag stale (>7d). Report to Maxime. Apply status updates.
 4. Phase 3 (Application): Read JD via browser. Load profile per AGENTS.md. Generate CV tailoring notes + cover letter. Save to career/leads/<date>_<company>_<role>/. Set status=ready_to_apply. CONFIRMATION REQUIRED before sending.
 5. Phase 4 (Follow-up): If applied>7d no response -> draft follow-up email. CONFIRMATION REQUIRED to send.
@@ -35,10 +35,10 @@ After loading, re-read the Startup Check and Procedure. The spec here is the law
 
 **Status Lifecycle:** preparing -> ready_to_apply -> applied -> screening -> interview_scheduled -> offer. All can -> rejected or withdrawn.
 
-**Output:** Updated job_leads.json, marked ingested in job_hunt_flagged.json, metrics.json
+**Output:** Updated job_leads.json, ingested entries removed from job_hunt_flagged_pending.json, metrics.json
 
 **Edge Cases:**
-- No handoff file -> skip Phase 1.
+- No pending file or no scored entries -> skip Phase 1 (report "N items pending your scoring" if file exists but no maxime_score values found).
 - Multiple interview_scheduled -> list for Maxime to pick.
 - 21d no-new-leads -> alert Maxime.
 - JD URL unavailable or browser fails -> try web_extract fallback, else skip Phase 3.

@@ -69,12 +69,18 @@ Three interlocked missions: discover → pursue → land.
 ## DATA FLOW
 
 ```
-Job Hunt —▸ job_registry.json ◄— Registry Maintenance
-                │
-                ▼
-        job_hunt_flagged_pending.json —▸ Lead Tracking —▸ job_leads.json —▸ Interview Coach
-                                       │
-                               memory/metrics.json
+Job Hunt P4 (digest)  ──▸ job_hunt_flagged_pending.json (audit snapshot)
+Job Hunt P6 (reply)   ──▸ job_hunt_flagged.json (scored entries)
+                                     │
+                                     ▼
+                             Lead Tracking P1 (ingest)
+                                     │
+                                     ▼
+Job Hunt ──▸ job_registry.json ◄── Registry Maintenance ◄── Lead Tracking (sync)
+                 │                                               │
+                 └────────── Lead Tracking ──▸ job_leads.json ──▸ Interview Coach
+                                                       │
+                                               memory/metrics.json
 ```
 
 Full schemas & current handoff rules live in the individual mission_*.md files + `references/cross-file-consistency.md`. `HANDOFFS.md` is retained as historical/supplementary after the two-registry changes.
@@ -85,6 +91,24 @@ Base: `/home/mars/.hermes/profiles/career-manager/workspace/`
 See `references/workspace.md` for path resolution quirks.
 
 ## SKILL EVOLUTION GUARDRAILS
+
+## SCHEDULED CRONS (Andy career-manager profile)
+
+These cron jobs are deployed on mars under the `career-manager` profile. All use `workdir=/home/mars/.hermes/profiles/career-manager/workspace`.
+
+| Cron Name | Schedule | Mission | Description |
+|---|---|---|---|
+| `heartbeat` | 0 7-19 * * * (hourly business hrs) | email-triage skill | Gmail inbox heartbeat — polls for digest replies and Maxime interactions |
+| `Job-Search: Weekly Hunt` | 30 6 * * 1 (Mon 6:30 AM) | `mission_job-hunt.md` | Weekly job discovery — search + score + digest email |
+| `Employment: Monthly Optimizer` | 0 6 1 * * (1st of month) | `career_employment-optimizer` | Monthly check: achievements gap, comp benchmark, career dev |
+| `Job-Search: Registry Maintenance` | 20 6 * * * (daily 6:20 AM) | `mission_job-registry-maintenance.md` | Validate URLs, mark closed/filled offers, enrich salary data |
+| `Job-Search: Lead Tracking` | 0 9,13 * * * (9 AM + 1 PM) | `mission_lead-tracking.md` | Ingest handoff → update pipeline → application prep → follow-ups |
+
+**KB crons** (deployed via `KB/knowledge-ops/crons/setup-hermes-crons.sh`, not part of this skill):
+- `KB: Dreaming` — 15 8,16 * * * — Memory consolidation + PR submissions
+- `KB: Lean Check` — 15 7 * * * — MEMORY.md trimming via KB promotion
+
+**Note:** The cron prompt may contain a generic `{{mission}}` template. On startup, follow `references/cron-template-variable-resolution.md` to deduce the correct mission and load its spec.
 
 **DO NOT modify this file or any mission/reference file without explicit Maxime approval.**
 

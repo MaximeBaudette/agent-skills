@@ -14,9 +14,9 @@
 1. Phase 1 (Tier 1): 5 web_search queries for Oakland/East Bay/Remote. Per result: extract, score 1-10 per rubric, dedup against registry, tier=1. Save weekly/YYYY-MM-DD_local.json.
 2. Phase 2 (Tier 2): Same for Bay Area. tier=2. Save weekly/YYYY-MM-DD_regional.json.
 3. Phase 3 (Tier 3): Same for relocation (LA/SD/SLC/Austin). score >=7 only. Save weekly/YYYY-MM-DD_relocation.json.
-4. Phase 4 (Digest): Run Phase 5 (aggregate skills from high-scoring offers, 2 market trend searches) inline. Execute generate_digest.py. Write flag + thread. On skipped_no_offers with startup_unreviewed_count==0 -> [SILENT] stop.
+4. Phase 4 (Digest): Run Phase 5 inline (aggregate skills from high-scoring offers, 2 market trend searches). Execute generate_digest.py. Write memory/handoffs/job_hunt_flagged_pending.json (audit snapshot, schema per references/handoff-pending-contract.md). Write weekly/YYYY-MM-DD_digest_sent.flag + weekly/YYYY-MM-DD_digest_thread.json. On skipped_no_offers with startup_unreviewed_count==0 -> [SILENT] stop.
 5. Phase 5 (Signals): Aggregate skills from high-scoring offers. 2 market trend searches. Write profile_signals.json. Include postscript if suggestions.
-6. Phase 6 (Reply): Parse Maxime SCORES:/FEEDBACK: from digest reply. Update job_registry.json. Write job_hunt_flagged.json. Archive thread.
+6. Phase 6 (Reply): Parse Maxime SCORES:/FEEDBACK: from digest reply. Update job_registry.json (set maxime_score, score_date, status on each scored entry). Write memory/handoffs/job_hunt_flagged.json (entries with maxime_score>=1, schema per references/HANDOFFS.md §Handoff File 1). Archive thread. Then auto-trigger Lead Tracking Phase 1.
 
 **Scoring Rubric (1-10):** 10=perfect (target role + core tech + Tier1 + salary>=150k + senior). 8=strong (one gap). 5=adjacent field. <=2=deal-breaker (oil/gas, clearance, salary<130k).
 

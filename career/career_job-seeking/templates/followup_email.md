@@ -1,0 +1,1 @@
+Subject: Follow-up on {{title}} at {{company}}\n\nHi,\nChecking on {{url}} – any update?\nMaxime
